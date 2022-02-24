@@ -1,0 +1,2 @@
+# traderbot
+Trader Bot!
