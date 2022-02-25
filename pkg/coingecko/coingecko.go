@@ -55,11 +55,10 @@ func (cg *CoinGecko) Ping() bool {
 }
 
 type Coin struct {
-	ID           string      `json:"id"`
-	Prices       TimeSeries  `json:"prices"`
-	MarketCaps   TimeSeries  `json:"market_caps"`
-	TotalVolumes TimeSeries  `json:"total_volumes"`
-	Indicators   []Indicator `json:"indicators"`
+	ID           string     `json:"id"`
+	Prices       TimeSeries `json:"prices"`
+	MarketCaps   TimeSeries `json:"market_caps"`
+	TotalVolumes TimeSeries `json:"total_volumes"`
 }
 
 func NewCoin(id string) *Coin {
