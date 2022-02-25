@@ -30,9 +30,9 @@ func TestEMAIndicator(t *testing.T) {
 	i := NewEMAIndicator(3, prices)
 	// Dump(i)
 
-	r.Equal(4.5, i.V[day5])
-	r.Equal(4.25, i.V[day4])
-	r.Equal(3.625, i.V[day3])
-	r.Equal(0.0, i.V[day2])
-	r.Equal(0.0, i.V[day1])
+	r.Equal(4.5, i.ForTimestamp(day5))
+	r.Equal(4.25, i.ForTimestamp(day4))
+	r.Equal(3.625, i.ForTimestamp(day3))
+	r.Equal(0.0, i.ForTimestamp(day2))
+	r.Equal(0.0, i.ForTimestamp(day1))
 }
