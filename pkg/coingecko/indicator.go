@@ -36,12 +36,12 @@ func NewEMAIndicator(days int, prices TimeSeries) *Indicator {
 	// - Assume 3 days of observations
 	// - Assume prices of day1 = 3.0, day2 = 4.0, day3 = 5.0 (day3 being today)
 	//
-	// - multiplier = 2 / (3 + 1) = 0.5
-	//
+	// multiplier = 2 / (3 + 1) = 0.5
 	// SMA = (3.0 + 4.0 + 5.0) / 3 = 4.0
-	// Day 3 EMA = (5.0 * 0.5) + (4.0 * (1 - 0.5)) = 2.5 + 2.0 -> 4.5
-	// Day 2 EMA = (4.0 * 0.5) + (4.5 * (1 - 0.5)) = 2.0 + 2.25 -> 4.25
-	// Day 1 EMA = (3.0 * 0.5) + (4.25 * (1 - 0.5)) = 1.5 + 2.125 -> 3.625
+	//
+	// Day 3 EMA = (5.0 * multiplier) + (SMA * (1 - multiplier)) = 2.5 + 2.0 = 4.5
+	// Day 2 EMA = (4.0 * multiplier) + (4.5 * (1 - multiplier)) = 2.0 + 2.25 = 4.25
+	// Day 1 EMA = (3.0 * multiplier) + (4.25 * (1 - multiplier)) = 1.5 + 2.125 = 3.625
 	//
 	var prevDayEMA float64
 	multiplier := 2.0 / (float64(days) + 1.0)
