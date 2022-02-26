@@ -15,8 +15,6 @@ import (
 
 	"github.com/anrid/traderbot/pkg/jsoncache"
 	"github.com/pkg/errors"
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
 )
 
 const (
@@ -24,11 +22,12 @@ const (
 	dateFormat = "2006-01-02"
 )
 
-func New() *CoinGecko {
-	return new(CoinGecko)
+func New(c Fiat) *CoinGecko {
+	return &CoinGecko{Currency: c}
 }
 
 type CoinGecko struct {
+	Currency          Fiat
 	hasSuccessfulPing bool
 }
 
@@ -54,19 +53,8 @@ func (cg *CoinGecko) Ping() bool {
 	return true
 }
 
-type Coin struct {
-	ID           string     `json:"id"`
-	Prices       TimeSeries `json:"prices"`
-	MarketCaps   TimeSeries `json:"market_caps"`
-	TotalVolumes TimeSeries `json:"total_volumes"`
-}
-
-func NewCoin(id string) *Coin {
-	return &Coin{ID: strings.ToLower(id)}
-}
-
 func (cg *CoinGecko) MarketChartWithCache(coinID string, days uint, i jsoncache.InvalidateCachePeriod) (*Coin, error) {
-	key := fmt.Sprintf("%s-%03d-days", coinID, days)
+	key := fmt.Sprintf("%s-%03d-days-%s", coinID, days, cg.Currency)
 
 	c := new(Coin)
 	err := jsoncache.Get(key, c, i)
@@ -95,11 +83,11 @@ func (cg *CoinGecko) MarketChart(coinID string, days uint) (*Coin, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	c := NewCoin(coinID)
+	c := NewCoin(coinID, cg.Currency)
 
 	u := url.URL{}
 	q := u.Query()
-	q.Add("vs_currency", "usd")
+	q.Add("vs_currency", string(c.Currency))
 	q.Add("days", fmt.Sprintf("%d", days))
 	q.Add("interval", "daily")
 	u.RawQuery = q.Encode()
@@ -186,39 +174,4 @@ func (cg *CoinGecko) getJSON(ctx context.Context, url string, payload, response 
 func Dump(o interface{}) {
 	b, _ := json.MarshalIndent(o, "", "  ")
 	fmt.Println(string(b))
-}
-
-type TimeSeries []TimeSeriesValue
-
-type TimeSeriesValue struct {
-	TS int64   `json:"ts"`
-	V  float64 `json:"v"`
-}
-
-func (v TimeSeriesValue) Time() time.Time {
-	return time.UnixMilli(int64(v.TS))
-}
-
-func (v TimeSeriesValue) TimeString() string {
-	return v.Time().Format(dateFormat)
-}
-
-func (ts TimeSeries) Print() {
-	pr := message.NewPrinter(language.English)
-
-	for _, v := range ts {
-		pr.Printf("[%s]  --  %.04f\n", v.TimeString(), v.V)
-	}
-}
-
-func NewTimeSeries(tuples [][]interface{}) TimeSeries {
-	var ts TimeSeries
-	for _, tuple := range tuples {
-		t := TimeSeriesValue{
-			TS: int64(tuple[0].(float64)),
-			V:  tuple[1].(float64),
-		}
-		ts = append(ts, t)
-	}
-	return ts
 }

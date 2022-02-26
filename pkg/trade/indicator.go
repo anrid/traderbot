@@ -73,7 +73,7 @@ func NewEMAIndicator(days int, prices coingecko.TimeSeries) *Indicator {
 		// fmt.Printf("[%s - %s] ema = %.04f  closing = %.04f\n", from.TimeString(), cur.TimeString(), ema, cur.V)
 
 		in.ByTimestamp[cur.TS] = ema
-		in.ByDateString[cur.TimeString()] = ema
+		in.ByDateString[cur.Date()] = ema
 
 		prevDayEMA = ema
 	}
