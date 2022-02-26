@@ -53,7 +53,7 @@ func NewTrade(side Side, date string, size float64, c *coingecko.Coin) (*Trade, 
 	}, nil
 }
 
-func ExecuteTrades(strategy string, initialInvestment float64, ts []*Trade) {
+func ExecuteTradesAndPrint(title string, initialInvestment float64, ts []*Trade) {
 	if len(ts) == 0 {
 		// Nothing to execute.
 		return
@@ -61,7 +61,7 @@ func ExecuteTrades(strategy string, initialInvestment float64, ts []*Trade) {
 
 	pr := message.NewPrinter(language.English)
 
-	pr.Printf("\n\nTrading '%s' according to '%s' Strategy\n", ts[0].Coin.ID, strategy)
+	pr.Printf("\n\nTrading '%s' : %s\n", ts[0].Coin.ID, title)
 	pr.Printf("=============================================================\n\n")
 
 	var totalFiat = initialInvestment

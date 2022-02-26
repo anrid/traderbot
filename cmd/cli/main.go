@@ -21,14 +21,13 @@ func main() {
 
 		ema9d := trade.NewEMAIndicator(9, c.Prices)
 		ema21d := trade.NewEMAIndicator(21, c.Prices)
-		// fmt.Printf("EMA 9d  : %.04f\n", ema9d.ForDate("2021-11-10"))
-		// fmt.Printf("EMA 21d : %.04f\n", ema21d.ForDate("2021-11-10"))
 
-		strat, err := trade.NewEMACrossOverStrategy(ema9d, ema21d, c)
+		strategy, err := trade.NewEMACrossOverStrategy(ema9d, ema21d, c)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		trade.ExecuteTrades("EMS 9/21 Cross Over", 10_000, strat.Trades)
+		initialInvestment := 10_000.0 // USD.
+		trade.ExecuteTradesAndPrint("EMS 9/21 CrossOver Strategy", initialInvestment, strategy.Trades)
 	}
 }
