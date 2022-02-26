@@ -53,10 +53,10 @@ func (cg *CoinGecko) Ping() bool {
 	return true
 }
 
-func (cg *CoinGecko) MarketChartWithCache(coinID string, days uint, i jsoncache.InvalidateCachePeriod) (*Coin, error) {
+func (cg *CoinGecko) MarketChartWithCache(coinID string, days uint, i jsoncache.InvalidateCachePeriod) (*Market, error) {
 	key := fmt.Sprintf("%s-%03d-days-%s", coinID, days, cg.Currency)
 
-	c := new(Coin)
+	c := new(Market)
 	err := jsoncache.Get(key, c, i)
 	if err != nil {
 		if err != jsoncache.ErrNotFound {
@@ -79,11 +79,50 @@ func (cg *CoinGecko) MarketChartWithCache(coinID string, days uint, i jsoncache.
 	return c, nil
 }
 
-func (cg *CoinGecko) MarketChart(coinID string, days uint) (*Coin, error) {
+func (cg *CoinGecko) Markets(ids ...string) ([]*Market, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	c := NewCoin(coinID, cg.Currency)
+	u := url.URL{}
+	q := u.Query()
+	q.Add("vs_currency", string(cg.Currency))
+	if len(ids) > 0 {
+		q.Add("ids", strings.Join(ids, ","))
+	}
+	q.Add("order", "market_cap_desc")
+	q.Add("per_page", "100")
+	q.Add("page", "1")
+	q.Add("sparkline", "false")
+	u.RawQuery = q.Encode()
+
+	url := "/coins/markets?" + u.RawQuery
+	// https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=terra-luna&order=market_cap_desc&per_page=100&page=1&sparkline=false
+
+	resp := make([]*Market, 0)
+
+	err := cg.pingAndGetJSON(ctx, apiBaseURI+url, nil, &resp)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not fetch markets for ids `%s`", strings.Join(ids, ","))
+	}
+
+	for _, c := range resp {
+		c.Currency = cg.Currency
+	}
+	return resp, nil
+}
+
+func (cg *CoinGecko) MarketChart(coinID string, days uint) (*Market, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	cs, err := cg.Markets(coinID)
+	if err != nil {
+		return nil, err
+	}
+	if len(cs) == 0 {
+		return nil, errors.Errorf("could not find market for coin with id '%s'", coinID)
+	}
+	c := cs[0]
 
 	u := url.URL{}
 	q := u.Query()
@@ -101,7 +140,7 @@ func (cg *CoinGecko) MarketChart(coinID string, days uint) (*Coin, error) {
 		TotalVolumes [][]interface{} `json:"total_volumes"`
 	}{}
 
-	err := cg.pingAndGetJSON(ctx, apiBaseURI+url, nil, &resp)
+	err = cg.pingAndGetJSON(ctx, apiBaseURI+url, nil, &resp)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not fetch market chart for coin `%s`", c.ID)
 	}

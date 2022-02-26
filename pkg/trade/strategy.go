@@ -8,22 +8,22 @@ import (
 type EMACrossOverStrategy struct {
 	ShortEMA *Indicator
 	LongEMA  *Indicator
-	C        *coingecko.Coin
+	M        *coingecko.Market
 	Trades   []*Trade
 }
 
-func NewEMACrossOverStrategy(shortEMA, longEMA *Indicator, c *coingecko.Coin) (*EMACrossOverStrategy, error) {
+func NewEMACrossOverStrategy(shortEMA, longEMA *Indicator, m *coingecko.Market) (*EMACrossOverStrategy, error) {
 	strat := &EMACrossOverStrategy{
 		ShortEMA: shortEMA,
 		LongEMA:  longEMA,
-		C:        c,
+		M:        m,
 	}
 
 	// pr := message.NewPrinter(language.English)
 	var lastShort float64
 	var lastLong float64
 
-	for _, p := range c.Prices {
+	for _, p := range m.Prices {
 		short := shortEMA.ForTimestamp(p.TS)
 		long := longEMA.ForTimestamp(p.TS)
 		if short == 0.0 || long == 0.0 {
@@ -41,18 +41,18 @@ func NewEMACrossOverStrategy(shortEMA, longEMA *Indicator, c *coingecko.Coin) (*
 				// Sell signal.
 				// pr.Printf("[%s] sell @ %.04f\n", p.Date(), p.V)
 
-				t, err := NewSellAtDate(p.Date(), 100.0, c)
+				t, err := NewSellAtDate(p.Date(), 100.0, m)
 				if err != nil {
-					return nil, errors.Wrapf(err, "could not create sell trade for %s", c.ID)
+					return nil, errors.Wrapf(err, "could not create sell trade for %s", m.ID)
 				}
 				strat.Trades = append(strat.Trades, t)
 			} else if shortCrossedOverLongFromBelow {
 				// Buy signal.
 				// pr.Printf("[%s] buy @ %.04f\n", p.Date(), p.V)
 
-				t, err := NewBuyAtDate(p.Date(), 100.0, c)
+				t, err := NewBuyAtDate(p.Date(), 100.0, m)
 				if err != nil {
-					return nil, errors.Wrapf(err, "could not create buy trade for %s", c.ID)
+					return nil, errors.Wrapf(err, "could not create buy trade for %s", m.ID)
 				}
 				strat.Trades = append(strat.Trades, t)
 			}
@@ -68,11 +68,11 @@ func NewEMACrossOverStrategy(shortEMA, longEMA *Indicator, c *coingecko.Coin) (*
 		if len(strat.Trades) > 0 {
 			last := strat.Trades[len(strat.Trades)-1]
 			if last.Side == Buy {
-				latestPrice := c.Prices[len(c.Prices)-1]
+				latestPrice := m.Prices[len(m.Prices)-1]
 
-				forcedSell, err := NewSellAtDate(latestPrice.Date(), 100.0, c)
+				forcedSell, err := NewSellAtDate(latestPrice.Date(), 100.0, m)
 				if err != nil {
-					return nil, errors.Wrapf(err, "could not create one last forced sale for %s", c.ID)
+					return nil, errors.Wrapf(err, "could not create one last forced sale for %s", m.ID)
 				}
 				strat.Trades = append(strat.Trades, forcedSell)
 			}

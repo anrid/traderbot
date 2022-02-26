@@ -1,6 +1,7 @@
 package trade
 
 import (
+	"strings"
 	"time"
 
 	"github.com/anrid/traderbot/pkg/coingecko"
@@ -20,34 +21,34 @@ type Trade struct {
 	Currency coingecko.Fiat
 	Side     Side
 	Date     string
-	Coin     *coingecko.Coin
+	Market   *coingecko.Market
 	Size     float64 // a percentage expressed as a float64 in range (0.0 - 100.0]
 	Price    float64
 }
 
-func NewBuyAtDate(date string, size float64, c *coingecko.Coin) (*Trade, error) {
-	return NewTrade(Buy, date, size, c)
+func NewBuyAtDate(date string, size float64, m *coingecko.Market) (*Trade, error) {
+	return NewTrade(Buy, date, size, m)
 }
 
-func NewSellAtDate(date string, size float64, c *coingecko.Coin) (*Trade, error) {
-	return NewTrade(Sell, date, size, c)
+func NewSellAtDate(date string, size float64, m *coingecko.Market) (*Trade, error) {
+	return NewTrade(Sell, date, size, m)
 }
 
-func NewTrade(side Side, date string, size float64, c *coingecko.Coin) (*Trade, error) {
+func NewTrade(side Side, date string, size float64, m *coingecko.Market) (*Trade, error) {
 	if size <= 0.0 || size > 100.0 {
 		return nil, errors.Errorf("invalid size %f, must be a percentage expressed as a float64 in range (0.0 - 100.0]", size)
 	}
 
-	p, found := c.PriceAtDate(date)
+	p, found := m.PriceAtDate(date)
 	if !found {
-		return nil, errors.Errorf("could not find a price for `%s` at date %s", c.ID, date)
+		return nil, errors.Errorf("could not find a price for `%s` at date %s", m.ID, date)
 	}
 
 	return &Trade{
-		Currency: c.Currency,
+		Currency: m.Currency,
 		Side:     side,
 		Date:     date,
-		Coin:     c,
+		Market:   m,
 		Size:     size,
 		Price:    p.V,
 	}, nil
@@ -60,8 +61,9 @@ func ExecuteTradesAndPrint(title string, initialInvestment float64, ts []*Trade)
 	}
 
 	pr := message.NewPrinter(language.English)
+	m := ts[0].Market
 
-	pr.Printf("\n\nTrading '%s' : %s\n", ts[0].Coin.ID, title)
+	pr.Printf("\n\nTrading '%s' (%s) : %s\n", m.Name, strings.ToUpper(m.Symbol), title)
 	pr.Printf("=============================================================\n\n")
 
 	var totalFiat = initialInvestment
@@ -91,7 +93,7 @@ func ExecuteTradesAndPrint(title string, initialInvestment float64, ts []*Trade)
 			}
 
 			pr.Printf("%3d. [%s] %-4s %-10s @ %14.04f  --  amount: %14.04f , units: %14.04f\n",
-				buys+sells, t.Date, "buy", t.Coin.ID, t.Price, amount, units,
+				buys+sells, t.Date, "buy", t.Market.ID, t.Price, amount, units,
 			)
 		} else if t.Side == Sell {
 			if !foundFirstBuy {
@@ -111,7 +113,7 @@ func ExecuteTradesAndPrint(title string, initialInvestment float64, ts []*Trade)
 			lastSellDate = t.Date
 
 			pr.Printf("%3d. [%s] %-4s %-10s @ %14.04f  --  amount: %14.04f , units: %14.04f  [portfolio: %14.04f]\n",
-				buys+sells, t.Date, "sell", t.Coin.ID, t.Price, amount, units, totalFiat,
+				buys+sells, t.Date, "sell", t.Market.ID, t.Price, amount, units, totalFiat,
 			)
 		}
 	}
@@ -124,7 +126,7 @@ func ExecuteTradesAndPrint(title string, initialInvestment float64, ts []*Trade)
 	var totalFiatOfExistingPosition float64
 	if buys > sells && totalUnits > 0 {
 		// We ended on a buy; calculate the value of the position today.
-		prices := ts[0].Coin.Prices
+		prices := ts[0].Market.Prices
 		latestPrice := prices[len(prices)-1].V
 		totalFiatOfExistingPosition = totalUnits * latestPrice
 	}
