@@ -1,3 +1,8 @@
+//
+// Executes a basic trading strategy based on the Exponential Moving Average indicator (EMA).
+// - When 9-day EMA crosses over the 21-day EMA indicator from below: Buy.
+// - When 9-day EMA crosses over the 21-day EMA indicator from above: Sell.
+//
 package main
 
 import (

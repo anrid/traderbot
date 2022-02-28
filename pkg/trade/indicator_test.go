@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anrid/traderbot/pkg/coingecko"
+	"github.com/anrid/traderbot/pkg/timeseries"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,7 +20,7 @@ func TestEMAIndicator(t *testing.T) {
 	day4 := now.Add(_24h * 3).UnixMilli()
 	day5 := now.Add(_24h * 4).UnixMilli()
 
-	prices := coingecko.NewTimeSeries([][]interface{}{
+	prices := timeseries.FromTuples([][]interface{}{
 		{float64(day1), 1.0},
 		{float64(day2), 2.0},
 		{float64(day3), 3.0},

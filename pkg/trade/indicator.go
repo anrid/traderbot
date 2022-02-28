@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/anrid/traderbot/pkg/coingecko"
+	"github.com/anrid/traderbot/pkg/timeseries"
 )
 
 type Indicator struct {
@@ -23,7 +23,7 @@ func (i *Indicator) ForDate(date string) (ema float64) {
 	return
 }
 
-func NewEMAIndicator(days int, prices coingecko.TimeSeries) *Indicator {
+func NewEMAIndicator(days int, prices timeseries.Series) *Indicator {
 	// Dump(prices)
 
 	in := &Indicator{

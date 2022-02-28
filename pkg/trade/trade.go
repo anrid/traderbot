@@ -39,7 +39,7 @@ func NewTrade(side Side, date string, size float64, m *coingecko.Market) (*Trade
 		return nil, errors.Errorf("invalid size %f, must be a percentage expressed as a float64 in range (0.0 - 100.0]", size)
 	}
 
-	p, found := m.PriceAtDate(date)
+	p, found := m.Prices.AtDate(date)
 	if !found {
 		return nil, errors.Errorf("could not find a price for `%s` at date %s", m.ID, date)
 	}

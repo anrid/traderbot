@@ -14,12 +14,12 @@ import (
 	"time"
 
 	"github.com/anrid/traderbot/pkg/jsoncache"
+	"github.com/anrid/traderbot/pkg/timeseries"
 	"github.com/pkg/errors"
 )
 
 const (
 	apiBaseURI = "https://api.coingecko.com/api/v3"
-	dateFormat = "2006-01-02"
 )
 
 func New(c Fiat) *CoinGecko {
@@ -146,9 +146,9 @@ func (cg *CoinGecko) MarketChart(coinID string, days uint) (*Market, error) {
 	}
 
 	// Convert CoinGecko result to TimeSeries data.
-	c.Prices = NewTimeSeries(resp.Prices)
-	c.MarketCaps = NewTimeSeries(resp.MarketCaps)
-	c.TotalVolumes = NewTimeSeries(resp.TotalVolumes)
+	c.Prices = timeseries.FromTuples(resp.Prices)
+	c.MarketCaps = timeseries.FromTuples(resp.MarketCaps)
+	c.TotalVolumes = timeseries.FromTuples(resp.TotalVolumes)
 
 	return c, nil
 }
