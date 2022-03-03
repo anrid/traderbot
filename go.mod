@@ -3,6 +3,7 @@ module github.com/anrid/traderbot
 go 1.17
 
 require (
+	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0

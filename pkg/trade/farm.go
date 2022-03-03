@@ -11,35 +11,39 @@ import (
 )
 
 type LPFarm struct {
-	A         *coingecko.Market
-	B         *coingecko.Market
-	Currency  coingecko.Fiat
-	StartDate string
-
-	APR           float64
-	APRDailyDecay float64
-	InitialAPR    float64
-
-	LastHarvestDate string
-	UnitsA          float64
-	UnitsB          float64
-	InitialUnitsA   float64
-	InitialUnitsB   float64
-	LastPriceA      float64
-	LastPriceB      float64
-	TotalValueFiat  float64
-	HODLValueFiat   float64
+	A                      *coingecko.Market
+	B                      *coingecko.Market
+	Currency               coingecko.Fiat
+	InitialInvestment      float64
+	StartDate              string
+	APR                    float64
+	APRChangeRateAtHarvest float64
+	InitialAPR             float64
+	LastHarvestDate        string
+	UnitsA                 float64
+	UnitsB                 float64
+	InitialUnitsA          float64
+	InitialUnitsB          float64
+	LastPriceA             float64
+	LastPriceB             float64
+	TotalValue             float64  // Total value of farm in given fiat currency.
+	TotalValueHODL         float64  // Total value if we simply HODL:d both assets instead, in given fiat currency.
+	ChangeHistory          []string // All dates when value of farm changed, e.g. a harvest was performed.
+	TotalValueHistory      []float64
+	TotalValueHODLHistory  []float64
+	APRHistory             []float64
 }
 
 func NewLPFarm(a, b *coingecko.Market, c coingecko.Fiat, initialInvestment float64, startDate string, apr float64) (*LPFarm, error) {
 	f := &LPFarm{
-		A:               a,
-		B:               b,
-		Currency:        c,
-		StartDate:       startDate,
-		LastHarvestDate: startDate,
-		APR:             apr,
-		InitialAPR:      apr,
+		A:                 a,
+		B:                 b,
+		Currency:          c,
+		InitialInvestment: initialInvestment,
+		StartDate:         startDate,
+		LastHarvestDate:   startDate,
+		APR:               apr,
+		InitialAPR:        apr,
 	}
 
 	pa, pb, err := f.GetPrices(startDate)
@@ -56,11 +60,17 @@ func NewLPFarm(a, b *coingecko.Market, c coingecko.Fiat, initialInvestment float
 	if err != nil {
 		return nil, err
 	}
+
+	f.ChangeHistory = append(f.ChangeHistory, startDate)
+	f.TotalValueHistory = append(f.TotalValueHistory, f.TotalValue)
+	f.TotalValueHODLHistory = append(f.TotalValueHODLHistory, f.TotalValueHODL)
+	f.APRHistory = append(f.APRHistory, f.InitialAPR)
+
 	return f, nil
 }
 
-func (f *LPFarm) SetAPRDailyDecay(dailyDecayPct float64) {
-	f.APRDailyDecay = dailyDecayPct
+func (f *LPFarm) SetAPRChangeRateAtHarvest(dailyChange float64) {
+	f.APRChangeRateAtHarvest = dailyChange
 }
 
 func (f *LPFarm) GetPrices(date string) (priceA, priceB timeseries.ValueAt, err error) {
@@ -88,8 +98,8 @@ func (f *LPFarm) RebalanceLP(priceA, priceB timeseries.ValueAt) error {
 	f.LastPriceA = priceA.V
 	f.LastPriceB = priceB.V
 
-	f.TotalValueFiat = (f.UnitsA * priceA.V) + (f.UnitsB * priceB.V)
-	f.HODLValueFiat = (f.InitialUnitsA * priceA.V) + (f.InitialUnitsB * priceB.V)
+	f.TotalValue = (f.UnitsA * priceA.V) + (f.UnitsB * priceB.V)
+	f.TotalValueHODL = (f.InitialUnitsA * priceA.V) + (f.InitialUnitsB * priceB.V)
 
 	return nil
 }
@@ -125,13 +135,11 @@ func (f *LPFarm) Harvest(date string) error {
 		// pr.Printf("[%s] harvest ==================\n\n", date)
 		// f.Print()
 
-		// Perform APR decay.
-		// We assume that APR will decrease over time.
-		if f.APRDailyDecay > 0.0 {
-			lowerAPR := f.APR - (f.APRDailyDecay * float64(days))
-			if lowerAPR > f.InitialAPR/2 {
-				// Limit decay to 50% of original APR.
-				f.APR = lowerAPR
+		if f.APRChangeRateAtHarvest > 0.0 {
+			// Apply APR change.
+			f.APR -= f.APRChangeRateAtHarvest
+			if f.APR < 0.0 {
+				f.APR = 0.0
 			}
 		}
 
@@ -147,7 +155,7 @@ func (f *LPFarm) Harvest(date string) error {
 		}
 
 		dailyPercentageRate := (f.APR / 100 / 365) * float64(days)
-		yield := f.TotalValueFiat * dailyPercentageRate
+		yield := f.TotalValue * dailyPercentageRate
 		// Split yield 50/50 between our asset pair.
 		addUnitsA := yield / 2 / pa.V
 		addUnitsB := yield / 2 / pb.V
@@ -161,6 +169,12 @@ func (f *LPFarm) Harvest(date string) error {
 		if err != nil {
 			return err
 		}
+
+		// Update change history.
+		f.ChangeHistory = append(f.ChangeHistory, date)
+		f.TotalValueHistory = append(f.TotalValueHistory, f.TotalValue)
+		f.TotalValueHODLHistory = append(f.TotalValueHODLHistory, f.TotalValueHODL)
+		f.APRHistory = append(f.APRHistory, f.APR)
 
 		f.Print()
 		// pr.Println("")

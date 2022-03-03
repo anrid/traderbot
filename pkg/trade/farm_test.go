@@ -60,15 +60,15 @@ func TestLPFarm(t *testing.T) {
 		f, err := NewLPFarm(assetA, assetB, coingecko.USD, 10_000, day1Date, 0.0)
 		r.NoError(err)
 
-		fmt.Printf("a = %f  b = %f  total = %f\n", f.UnitsA, f.UnitsB, f.TotalValueFiat)
+		fmt.Printf("a = %f  b = %f  total = %f\n", f.UnitsA, f.UnitsB, f.TotalValue)
 
 		f.Harvest(timeseries.FromTSToDate(day2))
 
-		fmt.Printf("a = %f  b = %f  total = %f\n", f.UnitsA, f.UnitsB, f.TotalValueFiat)
+		fmt.Printf("a = %f  b = %f  total = %f\n", f.UnitsA, f.UnitsB, f.TotalValue)
 
 		r.Equal(f.InitialUnitsA, f.UnitsA)
 		r.Equal(f.InitialUnitsB, f.UnitsB)
-		r.Equal(20_000.0, f.TotalValueFiat)
+		r.Equal(20_000.0, f.TotalValue)
 	}
 
 	// 365% APR case: Prices change proportionally over time. No IL. 365% APR.
@@ -76,15 +76,15 @@ func TestLPFarm(t *testing.T) {
 		f, err := NewLPFarm(assetA, assetB, coingecko.USD, 10_000, day1Date, 365.0)
 		r.NoError(err)
 
-		fmt.Printf("a = %f  b = %f  total = %f\n", f.UnitsA, f.UnitsB, f.TotalValueFiat)
+		fmt.Printf("a = %f  b = %f  total = %f\n", f.UnitsA, f.UnitsB, f.TotalValue)
 
 		f.Harvest(timeseries.FromTSToDate(day2))
 
-		fmt.Printf("a = %f  b = %f  total = %f\n", f.UnitsA, f.UnitsB, f.TotalValueFiat)
+		fmt.Printf("a = %f  b = %f  total = %f\n", f.UnitsA, f.UnitsB, f.TotalValue)
 
 		r.Equal(f.InitialUnitsA+(f.InitialUnitsA*0.01), f.UnitsA)
 		r.Equal(f.InitialUnitsB+(f.InitialUnitsB*0.01), f.UnitsB)
-		r.Equal(20_000.0+200.0, f.TotalValueFiat)
+		r.Equal(20_000.0+200.0, f.TotalValue)
 	}
 
 	{
@@ -101,16 +101,16 @@ func TestLPFarm(t *testing.T) {
 		f, err := NewLPFarm(assetA, assetB, coingecko.USD, 10_000, day1Date, 0.0)
 		r.NoError(err)
 
-		fmt.Printf("a = %f  b = %f  total = %f\n", f.UnitsA, f.UnitsB, f.TotalValueFiat)
+		fmt.Printf("a = %f  b = %f  total = %f\n", f.UnitsA, f.UnitsB, f.TotalValue)
 
 		f.Harvest(timeseries.FromTSToDate(day2))
 
-		fmt.Printf("a = %f  b = %f  total = %f\n", f.UnitsA, f.UnitsB, f.TotalValueFiat)
+		fmt.Printf("a = %f  b = %f  total = %f\n", f.UnitsA, f.UnitsB, f.TotalValue)
 
 		r.Equal(354.0, math.Round(f.UnitsA))
 		r.Equal(7_071.0, math.Round(f.UnitsB))
-		r.Equal(14_142.0, math.Round(f.TotalValueFiat))
-		r.Equal(15_000.0, f.HODLValueFiat)
+		r.Equal(14_142.0, math.Round(f.TotalValue))
+		r.Equal(15_000.0, f.TotalValueHODL)
 	}
 
 }

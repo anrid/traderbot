@@ -40,7 +40,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	farm.SetAPRDailyDecay(0.15) // Lower APR by 0.15 percentage points every day.
+	farm.SetAPRChangeRateAtHarvest(0.15) // Lower APR by 0.15 percentage points every day.
 
 	from := timeseries.ToTime(startDate)
 	for i := 1; i <= harvestDays; /* number of days to harvest and compound yields */ i++ {
