@@ -1,18 +1,29 @@
-# Trader Bot!
-
-## Example Usage
-
-#### Yield Farming Charts
+# Create Yield Farming Charts
 
 ```bash
-$ go run examples/yield_farming/main.go -p /tmp/ --final-apr 60
+# Simulates yield farming LUNA/OSMO LP on Osmosis DEX.
+# - Starting APR  : 100%
+# - Final APR     : 60%
+# - Starting from : Jul 1, 2021
+# - Duration      : 365 (number of days we want to harvest and compound yields)
+#
+$ go run examples/yield_farming/main.go \
+ --asset-a terra-luna \
+ --asset-b osmosis \
+ --path /tmp/ \
+ --apr 100.0 \
+ --final-apr 60 \
+ --start-date 2021-07-01 \
+ --harvest-days 365
 
 writing chart /tmp/yield-farming-luna-osmo-2021-07-01-2022-03-03.html
 ```
 
-[screenshot of chart](examples/yield_farming/screens/yield-farming-luna-osmo-2021-07-01-2022-03-03.jpg)
+#### Renders HTML chart:
 
-#### EMA 9/21-Day Trading Strategy
+![screenshot of chart](examples/yield_farming/screens/yield-farming-luna-osmo-2021-07-01-2022-03-03.jpg)
+
+# EMA 9/21-Day Trading Simulation
 
 ```golang
 // examples/ema_9_21_trading_strategy/main.go
@@ -89,7 +100,7 @@ Trading 'Terra' (LUNA) : 9-Day/21-Day EMS CrossOver Strategy
 
 ```
 
-#### Yield Farming
+# Yield Farming Simulations
 
 ```golang
 // examples/yield_farming_simple/main.go
