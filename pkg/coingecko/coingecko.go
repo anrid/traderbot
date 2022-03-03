@@ -74,6 +74,10 @@ func (cg *CoinGecko) MarketChartWithCache(coinID string, days uint, i jsoncache.
 		if err != nil {
 			return nil, err
 		}
+		fmt.Printf("Downloaded data   : %s\n", key)
+
+	} else {
+		fmt.Printf("Using cached data : %s\n", key)
 	}
 
 	return c, nil

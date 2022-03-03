@@ -79,3 +79,7 @@ func ToTime(date string) time.Time {
 func ToDate(t time.Time) (date string) {
 	return t.Format(dateFormat)
 }
+
+func FromTSToDate(ts int64) (date string) {
+	return time.UnixMilli(ts).Format(dateFormat)
+}

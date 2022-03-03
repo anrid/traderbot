@@ -35,10 +35,12 @@ func main() {
 	harvestDays := 365
 	initialInvestment := 10_000.0
 
-	farm, err := trade.NewLPFarm(a, b, coingecko.USD, initialInvestment, startDate, 75.0 /* APR */)
+	farm, err := trade.NewLPFarm(a, b, coingecko.USD, initialInvestment, startDate, 99.0 /* APR */)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	farm.SetAPRDailyDecay(0.15) // Lower APR by 0.15 percentage points every day.
 
 	from := timeseries.ToTime(startDate)
 	for i := 1; i <= harvestDays; /* number of days to harvest and compound yields */ i++ {
