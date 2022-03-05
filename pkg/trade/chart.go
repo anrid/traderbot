@@ -46,6 +46,8 @@ func RenderYieldFarmingPerformanceChart(path string, farm *LPFarm) error {
 		farm.ChangeHistory[len(farm.ChangeHistory)-1],
 	))
 
+	fontFamily := "Source Code Pro"
+
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
@@ -57,17 +59,18 @@ func RenderYieldFarmingPerformanceChart(path string, farm *LPFarm) error {
 			Title:    title,
 			Subtitle: subtitle,
 			TitleStyle: &opts.TextStyle{
-				FontFamily: "Source Code Pro",
+				FontFamily: fontFamily,
 			},
 			SubtitleStyle: &opts.TextStyle{
-				FontFamily: "Source Code Pro",
+				FontFamily: fontFamily,
 			},
 		}),
 		charts.WithLegendOpts(opts.Legend{
 			Show:   true,
 			Bottom: "1px",
 			TextStyle: &opts.TextStyle{
-				FontSize: 16,
+				FontSize:   12,
+				FontFamily: fontFamily,
 			},
 		}),
 		charts.WithYAxisOpts(opts.YAxis{
@@ -103,36 +106,57 @@ func RenderYieldFarmingPerformanceChart(path string, farm *LPFarm) error {
 		}),
 	)
 
-	line.SetXAxis(farm.ChangeHistory).
-		AddSeries("Farm", toLineData(farm.TotalValueHistory)).
-		AddSeries("HODL", toLineData(farm.TotalValueHODLHistory)).
-		AddSeries(pr.Sprintf("Only %s", strings.ToUpper(farm.A.Symbol)), toLineData(farm.TotalValueHODLOnlyAHistory)).
-		AddSeries(pr.Sprintf("Only %s", strings.ToUpper(farm.B.Symbol)), toLineData(farm.TotalValueHODLOnlyBHistory))
+	latest := len(farm.TotalValueHistory) - 1
+	farmV := farm.TotalValueHistory[latest]
+	farmPL := ((farmV / farm.InitialInvestment) - 1) * 100
+	hodlV := farm.TotalValueHODLHistory[latest]
+	hodlPL := ((hodlV / farm.InitialInvestment) - 1) * 100
+	onlyAV := farm.TotalValueHODLOnlyAHistory[latest]
+	onlyAPL := ((onlyAV / farm.InitialInvestment) - 1) * 100
+	onlyBV := farm.TotalValueHODLOnlyBHistory[latest]
+	onlyBPL := ((onlyBV / farm.InitialInvestment) - 1) * 100
 
-	line.SetSeriesOptions(
-		charts.WithLineChartOpts(
-			opts.LineChart{
-				Smooth: true,
-			}),
-		charts.WithMarkPointNameTypeItemOpts(
-			opts.MarkPointNameTypeItem{Name: "max", Type: "max"},
-			opts.MarkPointNameTypeItem{Name: "min", Type: "min"},
-		),
-		charts.WithMarkPointStyleOpts(
-			opts.MarkPointStyle{
+	series1 := "Farm"
+	series2 := "HODL"
+	series3 := pr.Sprintf("Only %s", strings.ToUpper(farm.A.Symbol))
+	series4 := pr.Sprintf("Only %s", strings.ToUpper(farm.B.Symbol))
+
+	line.SetXAxis(farm.ChangeHistory).
+		AddSeries(pr.Sprintf("%s: %.f (%.f%%)", series1, farmV, farmPL), toLineData(farm.TotalValueHistory)).
+		AddSeries(pr.Sprintf("%s: %.f (%.f%%)", series2, hodlV, hodlPL), toLineData(farm.TotalValueHODLHistory)).
+		AddSeries(pr.Sprintf("%s: %.f (%.f%%)", series3, onlyAV, onlyAPL), toLineData(farm.TotalValueHODLOnlyAHistory)).
+		AddSeries(pr.Sprintf("%s: %.f (%.f%%)", series4, onlyBV, onlyBPL), toLineData(farm.TotalValueHODLOnlyBHistory))
+
+	// line.SetSeriesOptions(
+	// 	charts.WithLineChartOpts(
+	// 		opts.LineChart{Smooth: true}),
+	// 	),
+	// )
+
+	markPointNames := []string{series1, series2, series3, series4}
+
+	for i := 0; i < len(line.MultiSeries); i++ {
+		name := markPointNames[i]
+
+		line.MultiSeries[i].MarkPoints = &opts.MarkPoints{
+			Data: []interface{}{
+				opts.MarkLineNameTypeItem{Name: name + " max", Type: "max"},
+				opts.MarkLineNameTypeItem{Name: name + " min", Type: "min"},
+			},
+			MarkPointStyle: opts.MarkPointStyle{
 				Label: &opts.Label{
 					Show:      true,
 					Position:  "top",
-					Formatter: "{a} {b}: {c}",
+					Formatter: "{b}: {c}",
 				},
 				SymbolSize: 10.0,
 				Symbol:     []string{"diamond"},
 			},
-		),
-	)
+		}
+	}
 
 	page := components.NewPage()
-	page.AddCharts(line)
+	page.AddCharts(line).SetLayout(components.PageFlexLayout)
 
 	file := filepath.Join(path, filename)
 	fmt.Printf("writing chart %s\n", file)
