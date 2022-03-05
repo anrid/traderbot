@@ -24,7 +24,7 @@ writing chart /tmp/yield-farming-luna-osmo-2021-07-01-2022-03-05.html
 
 #### Renders HTML chart:
 
-![screenshot of chart](examples/yield_farming/screens/yield-farming-luna-osmo-2021-07-01-2022-03-05.jpg)
+![screenshot of chart](examples/yield_farming/screens/yield-farming-luna-osmo-2021-07-01-2022-03-05-v2.jpg)
 
 ### Farming AVAX/USDC LP
 
@@ -50,7 +50,7 @@ writing chart /tmp/yield-farming-avax-usdc-2021-07-01-2022-03-05.html
 
 #### Renders HTML chart:
 
-![screenshot of chart](examples/yield_farming/screens/yield-farming-avax-usdc-2021-07-01-2022-03-05.jpg)
+![screenshot of chart](examples/yield_farming/screens/yield-farming-avax-usdc-2021-07-01-2022-03-05-v2.jpg)
 
 # EMA 9/21-Day Trading Simulation
 
