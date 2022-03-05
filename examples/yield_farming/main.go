@@ -1,8 +1,4 @@
-//
-// Simulates yield farming LUNA/OSMO LP on Osmosis DEX.
-// - Average APR: 75%.
-// - Starting from Jul 1, 2021.
-// - Daily harvesting and compounding for max 365 days.
+// Simulates yield farming an LP pair. See flags for details.
 //
 package main
 
@@ -36,14 +32,12 @@ func main() {
 
 	cg := coingecko.New(coingecko.USD)
 
-	var periodInDays uint = 365
-
-	a, err := cg.MarketChartWithCache(*assetAID, periodInDays, jsoncache.InvalidateDaily)
+	a, err := cg.MarketChartWithCache(*assetAID, uint(*harvestDays), jsoncache.InvalidateDaily)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	b, err := cg.MarketChartWithCache(*assetBID, periodInDays, jsoncache.InvalidateDaily)
+	b, err := cg.MarketChartWithCache(*assetBID, uint(*harvestDays), jsoncache.InvalidateDaily)
 	if err != nil {
 		log.Fatal(err)
 	}
