@@ -1,5 +1,7 @@
 # Create Yield Farming Charts
 
+### Farming LUNA/OSMO LP
+
 ```bash
 # Simulates yield farming LUNA/OSMO LP on Osmosis DEX.
 # - Starting APR  : 100%
@@ -7,21 +9,48 @@
 # - Starting from : Jul 1, 2021
 # - Duration      : 365 (number of days we want to harvest and compound yields)
 #
-$ go run examples/yield_farming/main.go \
- --asset-a terra-luna \
- --asset-b osmosis \
- --path /tmp/ \
- --apr 100.0 \
- --final-apr 60 \
- --start-date 2021-07-01 \
- --harvest-days 365
+$ go run examples/yield_farming/main.go --path /tmp --asset-a terra-luna --asset-b osmosis --apr 100.0 --final-apr 60 --start-date 2021-07-01
 
-writing chart /tmp/yield-farming-luna-osmo-2021-07-01-2022-03-03.html
+[2021-07-01] position  :  10,000.00  (IL:   0.00 , hodl:  10,000.00 , APR: 100.00 % , a:       6.54 , b:       4.01 , units: 764.00 / 1,247.38)
+[2021-07-02] position  :   8,753.03  (IL:  -0.21 , hodl:   8,735.00 , APR:  99.84 % , a:       5.93 , b:       3.37 , units: 738.56 / 1,297.42)
+
+... lots of rows removed ...
+
+[2022-03-04] position  : 106,430.21  (IL: -28.04 , hodl:  83,124.51 , APR:  60.16 % , a:      90.56 , b:      11.18 , units: 587.65 / 4,761.86)
+[2022-03-05] position  :  97,558.70  (IL: -27.28 , hodl:  76,651.23 , APR:  60.00 % , a:      83.82 , b:      10.11 , units: 581.95 / 4,824.31)
+
+writing chart /tmp/yield-farming-luna-osmo-2021-07-01-2022-03-05.html
 ```
 
 #### Renders HTML chart:
 
-![screenshot of chart](examples/yield_farming/screens/yield-farming-luna-osmo-2021-07-01-2022-03-03.jpg)
+![screenshot of chart](examples/yield_farming/screens/yield-farming-luna-osmo-2021-07-01-2022-03-05.jpg)
+
+### Farming AVAX/USDC LP
+
+```bash
+# Simulates yield farming AVAX/USDC.e LP, but with 0% APR to see the full impact of impermanent loss.
+# - Starting APR  : 0%
+# - Final APR     : 0%
+# - Starting from : Jul 1, 2021
+# - Duration      : 365 (number of days we want to harvest and compound yields)
+#
+$ go run examples/yield_farming/main.go --path /tmp --asset-a avalanche-2 --asset-b usd-coin --apr 0.0 --final-apr 0.0 --start-date 2021-07-01
+
+[2021-07-01] position  :  10,000.00  (IL:   0.00 , hodl:  10,000.00 , APR:   0.00 % , a:      11.98 , b:       1.00 , units: 417.38 / 4,983.67)
+[2021-07-02] position  :   9,713.69  (IL:   0.05 , hodl:   9,718.26 , APR:   0.00 % , a:      11.28 , b:       1.00 , units: 430.39 / 4,833.02)
+
+... lots of rows removed ...
+
+[2022-03-04] position  :  25,599.92  (IL:  32.42 , hodl:  37,878.16 , APR:   0.00 % , a:      78.82 , b:       1.00 , units: 162.39 / 12,808.83)
+[2022-03-05] position  :  25,726.79  (IL:  32.59 , hodl:  38,165.82 , APR:   0.00 % , a:      79.49 , b:       1.00 , units: 161.82 / 12,854.43)
+
+writing chart /tmp/yield-farming-avax-usdc-2021-07-01-2022-03-05.html
+```
+
+#### Renders HTML chart:
+
+![screenshot of chart](examples/yield_farming/screens/yield-farming-avax-usdc-2021-07-01-2022-03-05.jpg)
 
 # EMA 9/21-Day Trading Simulation
 

@@ -55,7 +55,7 @@ func TestLPFarm(t *testing.T) {
 		Prices:   pricesB1,
 	}
 
-	// Base case: Prices change proportionally over time. No IL. 0% APR.
+	// Base case: Asset prices change proportionally over time. No IL. 0% APR.
 	{
 		f, err := NewLPFarm(assetA, assetB, coingecko.USD, 10_000, day1Date, 0.0)
 		r.NoError(err)
@@ -71,7 +71,7 @@ func TestLPFarm(t *testing.T) {
 		r.Equal(20_000.0, f.TotalValue)
 	}
 
-	// 365% APR case: Prices change proportionally over time. No IL. 365% APR.
+	// 365% APR case: Asset prices change proportionally over time. No IL. 365% APR.
 	{
 		f, err := NewLPFarm(assetA, assetB, coingecko.USD, 10_000, day1Date, 365.0)
 		r.NoError(err)
@@ -87,6 +87,10 @@ func TestLPFarm(t *testing.T) {
 		r.Equal(20_000.0+200.0, f.TotalValue)
 	}
 
+	// Farming X/stable pair case:
+	// - Asset A prices increase 500% over 5 days
+	// - Asset B is a stable coin.
+	// - Lots of IL. 0% APR.
 	{
 		pricesB2 := timeseries.FromTuples([][]interface{}{
 			{float64(day1), 1.0},

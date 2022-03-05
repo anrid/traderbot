@@ -48,23 +48,88 @@ func RenderYieldFarmingPerformanceChart(path string, farm *LPFarm) error {
 
 	line := charts.NewLine()
 	line.SetGlobalOptions(
-		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeMacarons}),
-		charts.WithTitleOpts(opts.Title{Title: title, Subtitle: subtitle}),
+		charts.WithInitializationOpts(opts.Initialization{
+			Theme:  types.ThemeVintage,
+			Width:  "1000px",
+			Height: "700px",
+		}),
+		charts.WithTitleOpts(opts.Title{
+			Title:    title,
+			Subtitle: subtitle,
+			TitleStyle: &opts.TextStyle{
+				FontFamily: "Source Code Pro",
+			},
+			SubtitleStyle: &opts.TextStyle{
+				FontFamily: "Source Code Pro",
+			},
+		}),
+		charts.WithLegendOpts(opts.Legend{
+			Show:   true,
+			Bottom: "1px",
+			TextStyle: &opts.TextStyle{
+				FontSize: 16,
+			},
+		}),
+		charts.WithYAxisOpts(opts.YAxis{
+			Type: "value",
+			AxisLabel: &opts.AxisLabel{
+				Show:         true,
+				ShowMaxLabel: true,
+				ShowMinLabel: true,
+			},
+			SplitLine: &opts.SplitLine{
+				Show: true,
+				LineStyle: &opts.LineStyle{
+					Type: "dotted",
+				},
+			},
+		}),
+		charts.WithXAxisOpts(opts.XAxis{
+			Name: "Date",
+			AxisLabel: &opts.AxisLabel{
+				Show:         true,
+				ShowMaxLabel: true,
+				ShowMinLabel: true,
+			},
+			SplitLine: &opts.SplitLine{
+				Show: true,
+				LineStyle: &opts.LineStyle{
+					Type: "dotted",
+				},
+			},
+		}),
+		charts.WithTooltipOpts(opts.Tooltip{
+			Show: true,
+		}),
 	)
 
 	line.SetXAxis(farm.ChangeHistory).
 		AddSeries("Farm", toLineData(farm.TotalValueHistory)).
 		AddSeries("HODL", toLineData(farm.TotalValueHODLHistory)).
-		SetSeriesOptions(
-			charts.WithLineChartOpts(opts.LineChart{Smooth: true}),
-			charts.WithMarkPointNameTypeItemOpts(
-				opts.MarkPointNameTypeItem{Name: "Maximum", Type: "max"},
-				// opts.MarkPointNameTypeItem{Name: "Average", Type: "average"},
-				// opts.MarkPointNameTypeItem{Name: "Minimum", Type: "min"},
-			),
-			charts.WithMarkPointStyleOpts(
-				opts.MarkPointStyle{Label: &opts.Label{Show: true}}),
-		)
+		AddSeries(pr.Sprintf("Only %s", strings.ToUpper(farm.A.Symbol)), toLineData(farm.TotalValueHODLOnlyAHistory)).
+		AddSeries(pr.Sprintf("Only %s", strings.ToUpper(farm.B.Symbol)), toLineData(farm.TotalValueHODLOnlyBHistory))
+
+	line.SetSeriesOptions(
+		charts.WithLineChartOpts(
+			opts.LineChart{
+				Smooth: true,
+			}),
+		charts.WithMarkPointNameTypeItemOpts(
+			opts.MarkPointNameTypeItem{Name: "max", Type: "max"},
+			opts.MarkPointNameTypeItem{Name: "min", Type: "min"},
+		),
+		charts.WithMarkPointStyleOpts(
+			opts.MarkPointStyle{
+				Label: &opts.Label{
+					Show:      true,
+					Position:  "top",
+					Formatter: "{a} {b}: {c}",
+				},
+				SymbolSize: 10.0,
+				Symbol:     []string{"diamond"},
+			},
+		),
+	)
 
 	page := components.NewPage()
 	page.AddCharts(line)

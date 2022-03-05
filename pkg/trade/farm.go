@@ -11,27 +11,29 @@ import (
 )
 
 type LPFarm struct {
-	A                      *coingecko.Market
-	B                      *coingecko.Market
-	Currency               coingecko.Fiat
-	InitialInvestment      float64
-	StartDate              string
-	APR                    float64
-	APRChangeRateAtHarvest float64
-	InitialAPR             float64
-	LastHarvestDate        string
-	UnitsA                 float64
-	UnitsB                 float64
-	InitialUnitsA          float64
-	InitialUnitsB          float64
-	LastPriceA             float64
-	LastPriceB             float64
-	TotalValue             float64  // Total value of farm in given fiat currency.
-	TotalValueHODL         float64  // Total value if we simply HODL:d both assets instead, in given fiat currency.
-	ChangeHistory          []string // All dates when value of farm changed, e.g. a harvest was performed.
-	TotalValueHistory      []float64
-	TotalValueHODLHistory  []float64
-	APRHistory             []float64
+	A                          *coingecko.Market
+	B                          *coingecko.Market
+	Currency                   coingecko.Fiat
+	InitialInvestment          float64
+	StartDate                  string
+	APR                        float64
+	APRChangeRateAtHarvest     float64
+	InitialAPR                 float64
+	LastHarvestDate            string
+	UnitsA                     float64
+	UnitsB                     float64
+	InitialUnitsA              float64
+	InitialUnitsB              float64
+	TotalValue                 float64  // Total value of farm in given fiat currency.
+	TotalValueHODL             float64  // Total value if we simply HODL:d both assets instead, in given fiat currency.
+	ChangeHistory              []string // All dates when value of farm changed, e.g. a harvest was performed.
+	TotalValueHistory          []float64
+	TotalValueHODLHistory      []float64
+	TotalValueHODLOnlyAHistory []float64
+	TotalValueHODLOnlyBHistory []float64
+	PriceAHistory              []float64
+	PriceBHistory              []float64
+	APRHistory                 []float64
 }
 
 func NewLPFarm(a, b *coingecko.Market, c coingecko.Fiat, initialInvestment float64, startDate string, apr float64) (*LPFarm, error) {
@@ -61,10 +63,17 @@ func NewLPFarm(a, b *coingecko.Market, c coingecko.Fiat, initialInvestment float
 		return nil, err
 	}
 
+	// Include initial state in change history.
 	f.ChangeHistory = append(f.ChangeHistory, startDate)
+	f.PriceAHistory = append(f.PriceAHistory, pa.V)
+	f.PriceBHistory = append(f.PriceBHistory, pb.V)
 	f.TotalValueHistory = append(f.TotalValueHistory, f.TotalValue)
 	f.TotalValueHODLHistory = append(f.TotalValueHODLHistory, f.TotalValueHODL)
+	f.TotalValueHODLOnlyAHistory = append(f.TotalValueHODLOnlyAHistory, f.InitialInvestment)
+	f.TotalValueHODLOnlyBHistory = append(f.TotalValueHODLOnlyAHistory, f.InitialInvestment)
 	f.APRHistory = append(f.APRHistory, f.InitialAPR)
+
+	f.Print()
 
 	return f, nil
 }
@@ -95,9 +104,6 @@ func (f *LPFarm) RebalanceLP(priceA, priceB timeseries.ValueAt) error {
 	f.UnitsA = math.Sqrt(k / rt)
 	f.UnitsB = math.Sqrt(k * rt)
 
-	f.LastPriceA = priceA.V
-	f.LastPriceB = priceB.V
-
 	f.TotalValue = (f.UnitsA * priceA.V) + (f.UnitsB * priceB.V)
 	f.TotalValueHODL = (f.InitialUnitsA * priceA.V) + (f.InitialUnitsB * priceB.V)
 
@@ -107,17 +113,16 @@ func (f *LPFarm) RebalanceLP(priceA, priceB timeseries.ValueAt) error {
 func (f *LPFarm) Print() {
 	pr := message.NewPrinter(language.English)
 
-	pos := (f.UnitsA * f.LastPriceA) + (f.UnitsB * f.LastPriceB)
-	ini := (f.InitialUnitsA * f.LastPriceA) + (f.InitialUnitsB * f.LastPriceB)
-	il := (1 - (pos / ini)) * 100.0
+	latest := len(f.TotalValueHistory) - 1
+	pa := f.PriceAHistory[latest]
+	pb := f.PriceBHistory[latest]
+	farm := f.TotalValueHistory[latest]
+	hodl := f.TotalValueHODLHistory[latest]
+	il := (1 - (farm / hodl)) * 100.0
 
-	// pr.Printf("[%s] units a   : %f  (price: %f)\n", f.LastHarvestDate, f.UnitsA, f.LastPriceA)
-	// pr.Printf("[%s] units b   : %f  (price: %f)\n", f.LastHarvestDate, f.UnitsB, f.LastPriceB)
-	pr.Printf("[%s] position  : %10.02f  (IL: %6.02f , hodl: %10.02f , APR: %6.02f %% , a: %10.02f , b: %10.02f)\n",
-		f.LastHarvestDate, pos, il, ini, f.APR, f.LastPriceA, f.LastPriceB,
+	pr.Printf("[%s] position  : %10.02f  (IL: %6.02f , hodl: %10.02f , APR: %6.02f %% , a: %10.02f , b: %10.02f , units: %.2f / %.2f)\n",
+		f.LastHarvestDate, farm, il, hodl, f.APR, pa, pb, f.UnitsA, f.UnitsB,
 	)
-	// pr.Printf("[%s] no LP     : %f\n", f.LastHarvestDate, ini)
-	// pr.Printf("[%s] IL        : %f\n", f.LastHarvestDate, il)
 }
 
 func (f *LPFarm) Harvest(date string) error {
@@ -172,8 +177,12 @@ func (f *LPFarm) Harvest(date string) error {
 
 		// Update change history.
 		f.ChangeHistory = append(f.ChangeHistory, date)
+		f.PriceAHistory = append(f.PriceAHistory, pa.V)
+		f.PriceBHistory = append(f.PriceBHistory, pb.V)
 		f.TotalValueHistory = append(f.TotalValueHistory, f.TotalValue)
 		f.TotalValueHODLHistory = append(f.TotalValueHODLHistory, f.TotalValueHODL)
+		f.TotalValueHODLOnlyAHistory = append(f.TotalValueHODLOnlyAHistory, f.InitialUnitsA*2*pa.V)
+		f.TotalValueHODLOnlyBHistory = append(f.TotalValueHODLOnlyBHistory, f.InitialUnitsB*2*pb.V)
 		f.APRHistory = append(f.APRHistory, f.APR)
 
 		f.Print()
