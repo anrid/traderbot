@@ -97,7 +97,7 @@ func main() {
 #### Output:
 
 ```bash
-$ go run cmd/ema_trading_strategy_example/main.go 
+$ go run cmd/ema_trading_strategy_example/main.go
 
 
 Trading 'Terra' (LUNA) : 9-Day/21-Day EMS CrossOver Strategy
@@ -150,38 +150,45 @@ import (
 )
 
 func main() {
+	startDate := "2021-07-01"     // Date of initial investment. We start farming from this date.
+	harvestDays := 365            // Number of days to harvest and compound yields.
+	initialInvestment := 10_000.0 // Initial investment in USD.
+	apr := 99.0                   // Farm APR.
+
 	cg := coingecko.New(coingecko.USD)
 
-	var periodInDays uint = 365
-
-	a, err := cg.MarketChartWithCache("terra-luna", periodInDays, jsoncache.InvalidateDaily)
+	a, err := cg.MarketChartWithCache("terra-luna", uint(harvestDays), jsoncache.InvalidateDaily)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	b, err := cg.MarketChartWithCache("osmosis", periodInDays, jsoncache.InvalidateDaily)
+	b, err := cg.MarketChartWithCache("osmosis", uint(harvestDays), jsoncache.InvalidateDaily)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	startDate := "2021-07-01"
-	harvestDays := 365
-	initialInvestment := 10_000.0
-
-	farm, err := trade.NewLPFarm(a, b, coingecko.USD, initialInvestment, startDate, 99.0 /* APR */)
+	farm, err := trade.NewLPFarm(a, b, coingecko.USD, initialInvestment, startDate, apr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	farm.SetAPRDailyDecay(0.15) // Lower APR by 0.15 percentage points every day.
+	farm.SetAPRChangeRateAtHarvest(0.15) // Lower APR by 0.15 percentage points every day.
 
 	from := timeseries.ToTime(startDate)
-	for i := 1; i <= harvestDays; /* number of days to harvest and compound yields */ i++ {
-		cur := from.Add(time.Duration(i) * 24 * time.Hour)
-		if cur.After(time.Now()) {
+	for i := 1; i <= harvestDays; i++ {
+		current := from.Add(time.Duration(i) * 24 * time.Hour)
+		if current.After(time.Now()) {
 			break
 		}
-		farm.Harvest(timeseries.ToDate(cur))
+
+		date := timeseries.ToDate(current)
+
+		yield, err := farm.Harvest(date)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		farm.AddLP(date, yield) // Compound yield!
 	}
 }
 ```
@@ -191,40 +198,42 @@ func main() {
 ```bash
 $ go run cmd/yield_farming_example/main.go
 
-Using cached data : terra-luna-365-days-usd
-Using cached data : osmosis-365-days-usd
-
-[2021-07-02] position  :   8,752.79  (IL:  -0.20 , hodl:   8,735.00 , APR:  98.85 % , a:       5.93 , b:       3.37)
-[2021-07-03] position  :   8,669.43  (IL:  -0.53 , hodl:   8,623.95 , APR:  98.70 % , a:       5.74 , b:       3.40)
-[2021-07-04] position  :   8,816.55  (IL:  -0.80 , hodl:   8,746.45 , APR:  98.55 % , a:       5.81 , b:       3.45)
-[2021-07-05] position  :   9,057.06  (IL:  -1.07 , hodl:   8,961.16 , APR:  98.40 % , a:       5.97 , b:       3.53)
-[2021-07-06] position  :   9,429.79  (IL:  -1.35 , hodl:   9,303.98 , APR:  98.25 % , a:       6.15 , b:       3.69)
-[2021-07-07] position  :   8,979.46  (IL:  -0.97 , hodl:   8,892.94 , APR:  98.10 % , a:       6.48 , b:       3.16)
-[2021-07-08] position  :   9,067.94  (IL:   0.13 , hodl:   9,080.18 , APR:  97.95 % , a:       7.12 , b:       2.92)
-[2021-07-09] position  :   8,081.00  (IL:   1.19 , hodl:   8,178.40 , APR:  97.80 % , a:       6.71 , b:       2.44)
-[2021-07-10] position  :   8,616.12  (IL:   5.06 , hodl:   9,074.94 , APR:  97.65 % , a:       8.17 , b:       2.27)
-[2021-07-11] position  :   8,720.93  (IL:   3.50 , hodl:   9,037.32 , APR:  97.50 % , a:       7.94 , b:       2.38)
-[2021-07-12] position  :   8,864.39  (IL:   4.83 , hodl:   9,314.60 , APR:  97.35 % , a:       8.43 , b:       2.31)
-[2021-07-13] position  :   7,934.92  (IL:   6.66 , hodl:   8,501.37 , APR:  97.20 % , a:       7.94 , b:       1.95)
-[2021-07-14] position  :   7,047.61  (IL:   6.75 , hodl:   7,558.03 , APR:  97.05 % , a:       7.10 , b:       1.71)
+CoinGecko says: (V3) To the Moon!
+Downloaded data   : terra-luna-365-days-usd
+Downloaded data   : osmosis-365-days-usd
+[2021-07-01] position  :  10,000.00  (IL:   0.00 , hodl:  10,000.00 , APR:  99.00 % , a:       6.54 , b:       4.01 , units: 764.00 / 1,247.38)
+[2021-07-02] position  :   8,729.15  (IL:   0.07 , hodl:   8,735.00 , APR:  98.85 % , a:       5.93 , b:       3.37 , units: 736.54 / 1,293.88)
+[2021-07-03] position  :   8,646.05  (IL:  -0.26 , hodl:   8,623.95 , APR:  98.70 % , a:       5.74 , b:       3.40 , units: 753.11 / 1,272.28)
+[2021-07-04] position  :   8,792.81  (IL:  -0.53 , hodl:   8,746.45 , APR:  98.55 % , a:       5.81 , b:       3.45 , units: 756.42 / 1,273.57)
+[2021-07-05] position  :   9,032.71  (IL:  -0.80 , hodl:   8,961.16 , APR:  98.40 % , a:       5.97 , b:       3.53 , units: 757.03 / 1,279.43)
+[2021-07-06] position  :   9,404.48  (IL:  -1.08 , hodl:   9,303.98 , APR:  98.25 % , a:       6.15 , b:       3.69 , units: 764.61 / 1,273.58)
+[2021-07-07] position  :   8,955.39  (IL:  -0.70 , hodl:   8,892.94 , APR:  98.10 % , a:       6.48 , b:       3.16 , units: 690.94 / 1,416.98)
+[2021-07-08] position  :   9,043.67  (IL:   0.40 , hodl:   9,080.18 , APR:  97.95 % , a:       7.12 , b:       2.92 , units: 634.66 / 1,550.94)
+[2021-07-09] position  :   8,059.41  (IL:   1.46 , hodl:   8,178.40 , APR:  97.80 % , a:       6.71 , b:       2.44 , units: 600.11 / 1,649.05)
+[2021-07-10] position  :   8,593.13  (IL:   5.31 , hodl:   9,074.94 , APR:  97.65 % , a:       8.17 , b:       2.27 , units: 525.87 / 1,891.94)
+[2021-07-11] position  :   8,697.70  (IL:   3.76 , hodl:   9,037.32 , APR:  97.50 % , a:       7.94 , b:       2.38 , units: 547.58 / 1,826.65)
+[2021-07-12] position  :   8,840.81  (IL:   5.09 , hodl:   9,314.60 , APR:  97.35 % , a:       8.43 , b:       2.31 , units: 524.53 / 1,917.13)
+[2021-07-13] position  :   7,913.85  (IL:   6.91 , hodl:   8,501.37 , APR:  97.20 % , a:       7.94 , b:       1.95 , units: 498.06 / 2,029.81)
+[2021-07-14] position  :   7,028.92  (IL:   7.00 , hodl:   7,558.03 , APR:  97.05 % , a:       7.10 , b:       1.71 , units: 495.21 / 2,052.38)
 
 ... lots of rows removed ...
 
-[2022-02-17] position  :  73,034.06  (IL: -35.32 , hodl:  53,972.72 , APR:  64.35 % , a:      56.14 , b:       8.88)
-[2022-02-18] position  :  68,792.84  (IL: -39.30 , hodl:  49,383.69 , APR:  64.20 % , a:      50.34 , b:       8.76)
-[2022-02-19] position  :  69,414.27  (IL: -39.36 , hodl:  49,807.65 , APR:  64.05 % , a:      50.82 , b:       8.80)
-[2022-02-20] position  :  69,114.27  (IL: -39.63 , hodl:  49,499.36 , APR:  63.90 % , a:      50.50 , b:       8.75)
-[2022-02-21] position  :  67,784.17  (IL: -39.61 , hodl:  48,551.16 , APR:  63.75 % , a:      49.61 , b:       8.54)
-[2022-02-22] position  :  66,245.14  (IL: -36.87 , hodl:  48,400.05 , APR:  63.60 % , a:      50.25 , b:       8.02)
-[2022-02-23] position  :  70,505.21  (IL: -35.19 , hodl:  52,151.53 , APR:  63.45 % , a:      54.67 , b:       8.33)
-[2022-02-24] position  :  75,027.24  (IL: -33.04 , hodl:  56,395.63 , APR:  63.30 % , a:      59.79 , b:       8.59)
-[2022-02-25] position  :  78,980.92  (IL: -29.88 , hodl:  60,809.89 , APR:  63.15 % , a:      65.44 , b:       8.67)
-[2022-02-26] position  :  85,883.20  (IL: -27.61 , hodl:  67,302.13 , APR:  63.00 % , a:      73.18 , b:       9.13)
-[2022-02-27] position  :  92,120.85  (IL: -28.55 , hodl:  71,658.79 , APR:  62.85 % , a:      77.69 , b:       9.86)
-[2022-02-28] position  :  85,387.56  (IL: -27.89 , hodl:  66,765.55 , APR:  62.70 % , a:      72.64 , b:       9.03)
-[2022-03-01] position  : 100,863.67  (IL: -22.72 , hodl:  82,193.25 , APR:  62.55 % , a:      91.26 , b:      10.00)
-[2022-03-02] position  : 100,412.99  (IL: -23.59 , hodl:  81,247.15 , APR:  62.40 % , a:      90.00 , b:      10.01)
-[2022-03-03] position  : 105,066.12  (IL: -25.68 , hodl:  83,600.55 , APR:  62.25 % , a:      91.97 , b:      10.69)
+[2022-02-21] position  :  67,665.98  (IL: -39.37 , hodl:  48,551.16 , APR:  63.75 % , a:      49.61 , b:       8.54 , units: 682.03 / 3,962.00)
+[2022-02-22] position  :  66,129.91  (IL: -36.63 , hodl:  48,400.05 , APR:  63.60 % , a:      50.25 , b:       8.02 , units: 657.99 / 4,121.07)
+[2022-02-23] position  :  70,382.86  (IL: -34.96 , hodl:  52,151.53 , APR:  63.45 % , a:      54.67 , b:       8.33 , units: 643.72 / 4,227.15)
+[2022-02-24] position  :  74,897.35  (IL: -32.81 , hodl:  56,395.63 , APR:  63.30 % , a:      59.79 , b:       8.59 , units: 626.31 / 4,359.73)
+[2022-02-25] position  :  78,844.51  (IL: -29.66 , hodl:  60,809.89 , APR:  63.15 % , a:      65.44 , b:       8.67 , units: 602.38 / 4,548.70)
+[2022-02-26] position  :  85,735.22  (IL: -27.39 , hodl:  67,302.13 , APR:  63.00 % , a:      73.18 , b:       9.13 , units: 585.77 / 4,693.84)
+[2022-02-27] position  :  91,962.50  (IL: -28.33 , hodl:  71,658.79 , APR:  62.85 % , a:      77.69 , b:       9.86 , units: 591.86 / 4,661.67)
+[2022-02-28] position  :  85,241.13  (IL: -27.67 , hodl:  66,765.55 , APR:  62.70 % , a:      72.64 , b:       9.03 , units: 586.71 / 4,718.72)
+[2022-03-01] position  : 100,691.11  (IL: -22.51 , hodl:  82,193.25 , APR:  62.55 % , a:      91.26 , b:      10.00 , units: 551.67 / 5,035.71)
+[2022-03-02] position  : 100,241.62  (IL: -23.38 , hodl:  81,247.15 , APR:  62.40 % , a:      90.00 , b:      10.01 , units: 556.92 / 5,005.33)
+[2022-03-03] position  : 104,887.23  (IL: -25.46 , hodl:  83,600.55 , APR:  62.25 % , a:      91.97 , b:      10.69 , units: 570.23 / 4,905.28)
+[2022-03-04] position  : 106,589.57  (IL: -28.23 , hodl:  83,124.51 , APR:  62.10 % , a:      90.56 , b:      11.18 , units: 588.53 / 4,768.99)
+[2022-03-05] position  :  97,710.38  (IL: -27.47 , hodl:  76,651.23 , APR:  61.95 % , a:      83.82 , b:      10.11 , units: 582.85 / 4,831.81)
+[2022-03-06] position  : 101,427.19  (IL: -27.26 , hodl:  79,699.80 , APR:  61.80 % , a:      87.30 , b:      10.43 , units: 580.93 / 4,864.29)
+[2022-03-07] position  :  93,011.33  (IL: -28.26 , hodl:  72,518.26 , APR:  61.65 % , a:      79.19 , b:       9.63 , units: 587.24 / 4,828.31)
+[2022-03-08] position  :  92,935.68  (IL: -29.87 , hodl:  71,561.87 , APR:  61.50 % , a:      77.72 , b:       9.76 , units: 597.85 / 4,758.64)
+[2022-03-09] position  :  95,819.19  (IL: -24.28 , hodl:  77,098.62 , APR:  61.35 % , a:      85.57 , b:       9.40 , units: 559.87 / 5,098.64)
 
 ```
-

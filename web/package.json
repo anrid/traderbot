@@ -1,0 +1,19 @@
+{
+    "name": "traderbot-web-app",
+    "version": "0.0.1",
+    "description": "TraderBot Web App",
+    "scripts": {
+        "start": "vite",
+        "dev": "vite",
+        "build": "vite build",
+        "serve": "vite preview"
+    },
+    "license": "MIT",
+    "devDependencies": {
+        "vite": "^2.8.6",
+        "vite-plugin-solid": "^2.2.5"
+    },
+    "dependencies": {
+        "solid-js": "^1.3.10"
+    }
+}

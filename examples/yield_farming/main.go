@@ -70,7 +70,11 @@ func main() {
 	}
 
 	for _, d := range harvestDates {
-		farm.Harvest(d)
+		yield, err := farm.Harvest(d)
+		if err != nil {
+			log.Fatal(err)
+		}
+		farm.AddLP(d, yield) // Compound yield!
 	}
 
 	err = trade.RenderYieldFarmingPerformanceChart(*path, farm)

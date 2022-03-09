@@ -2,6 +2,7 @@ package trade
 
 import (
 	"math"
+	"sort"
 
 	"github.com/anrid/traderbot/pkg/coingecko"
 	"github.com/anrid/traderbot/pkg/timeseries"
@@ -11,29 +12,35 @@ import (
 )
 
 type LPFarm struct {
-	A                          *coingecko.Market
-	B                          *coingecko.Market
-	Currency                   coingecko.Fiat
-	InitialInvestment          float64
-	StartDate                  string
-	APR                        float64
-	APRChangeRateAtHarvest     float64
-	InitialAPR                 float64
-	LastHarvestDate            string
-	UnitsA                     float64
-	UnitsB                     float64
-	InitialUnitsA              float64
-	InitialUnitsB              float64
-	TotalValue                 float64  // Total value of farm in given fiat currency.
-	TotalValueHODL             float64  // Total value if we simply HODL:d both assets instead, in given fiat currency.
-	ChangeHistory              []string // All dates when value of farm changed, e.g. a harvest was performed.
-	TotalValueHistory          []float64
-	TotalValueHODLHistory      []float64
-	TotalValueHODLOnlyAHistory []float64
-	TotalValueHODLOnlyBHistory []float64
-	PriceAHistory              []float64
-	PriceBHistory              []float64
-	APRHistory                 []float64
+	A                      *coingecko.Market
+	B                      *coingecko.Market
+	Currency               coingecko.Fiat
+	InitialInvestment      float64
+	StartDate              string
+	APR                    float64
+	APRChangeRateAtHarvest float64
+	InitialAPR             float64
+	LastHarvestDate        string
+	UnitsA                 float64
+	UnitsB                 float64
+	InitialUnitsA          float64
+	InitialUnitsB          float64
+	TotalValue             float64                       // Total value of farm in given fiat currency.
+	TotalValueHODL         float64                       // Total value if we simply HODL:d both assets instead, in given fiat currency.
+	ChangeHistory          map[string]*LPFarmHistoryItem // All changes, e.g. when a harvest was performed or more LP was added.
+}
+
+type LPFarmHistoryItem struct {
+	Date                string
+	PriceA              float64
+	PriceB              float64
+	UnitsA              float64
+	UnitsB              float64
+	TotalValue          float64
+	TotalValueHODL      float64
+	TotalValueHODLOnlyA float64
+	TotalValueHODLOnlyB float64
+	APR                 float64
 }
 
 func NewLPFarm(a, b *coingecko.Market, c coingecko.Fiat, initialInvestment float64, startDate string, apr float64) (*LPFarm, error) {
@@ -46,6 +53,7 @@ func NewLPFarm(a, b *coingecko.Market, c coingecko.Fiat, initialInvestment float
 		LastHarvestDate:   startDate,
 		APR:               apr,
 		InitialAPR:        apr,
+		ChangeHistory:     make(map[string]*LPFarmHistoryItem),
 	}
 
 	pa, pb, err := f.GetPrices(startDate)
@@ -58,24 +66,42 @@ func NewLPFarm(a, b *coingecko.Market, c coingecko.Fiat, initialInvestment float
 	f.InitialUnitsA = f.UnitsA
 	f.InitialUnitsB = f.UnitsB
 
-	err = f.RebalanceLP(pa, pb)
-	if err != nil {
-		return nil, err
-	}
+	f.RebalanceLP(pa, pb)
 
 	// Include initial state in change history.
-	f.ChangeHistory = append(f.ChangeHistory, startDate)
-	f.PriceAHistory = append(f.PriceAHistory, pa.V)
-	f.PriceBHistory = append(f.PriceBHistory, pb.V)
-	f.TotalValueHistory = append(f.TotalValueHistory, f.TotalValue)
-	f.TotalValueHODLHistory = append(f.TotalValueHODLHistory, f.TotalValueHODL)
-	f.TotalValueHODLOnlyAHistory = append(f.TotalValueHODLOnlyAHistory, f.InitialInvestment)
-	f.TotalValueHODLOnlyBHistory = append(f.TotalValueHODLOnlyAHistory, f.InitialInvestment)
-	f.APRHistory = append(f.APRHistory, f.InitialAPR)
+	f.LogChange(startDate, pa, pb)
 
-	f.Print()
+	f.PrintChange(startDate)
 
 	return f, nil
+}
+
+func (f *LPFarm) LogChange(date string, priceA, priceB timeseries.ValueAt) {
+	// Update change history.
+	f.ChangeHistory[date] = &LPFarmHistoryItem{
+		Date:                date,
+		PriceA:              priceA.V,
+		PriceB:              priceB.V,
+		UnitsA:              f.UnitsA,
+		UnitsB:              f.UnitsB,
+		TotalValue:          f.TotalValue,
+		TotalValueHODL:      f.TotalValueHODL,
+		TotalValueHODLOnlyA: f.InitialUnitsA * 2 * priceA.V,
+		TotalValueHODLOnlyB: f.InitialUnitsB * 2 * priceB.V,
+		APR:                 f.APR,
+	}
+}
+
+func (f *LPFarm) GetChangeHistoryAsc() (items []*LPFarmHistoryItem) {
+	for _, v := range f.ChangeHistory {
+		items = append(items, v)
+	}
+
+	sort.SliceStable(items, func(i, j int) bool {
+		return items[i].Date < items[j].Date
+	})
+
+	return
 }
 
 func (f *LPFarm) SetAPRChangeRateAtHarvest(dailyChange float64) {
@@ -84,20 +110,23 @@ func (f *LPFarm) SetAPRChangeRateAtHarvest(dailyChange float64) {
 
 func (f *LPFarm) GetPrices(date string) (priceA, priceB timeseries.ValueAt, err error) {
 	var found bool
+
 	priceA, found = f.A.Prices.AtDate(date)
 	if !found {
 		err = errors.Errorf("could not find a price for %s on date %s", f.A.Symbol, date)
 		return
 	}
+
 	priceB, found = f.B.Prices.AtDate(date)
 	if !found {
 		err = errors.Errorf("could not find a price for %s on date %s", f.B.Symbol, date)
 		return
 	}
+
 	return
 }
 
-func (f *LPFarm) RebalanceLP(priceA, priceB timeseries.ValueAt) error {
+func (f *LPFarm) RebalanceLP(priceA, priceB timeseries.ValueAt) {
 	k := f.UnitsA * f.UnitsB  // k value for impermanent loss calculations.
 	rt := priceA.V / priceB.V // a price in b where a and b are the two assets in the pool
 
@@ -106,32 +135,49 @@ func (f *LPFarm) RebalanceLP(priceA, priceB timeseries.ValueAt) error {
 
 	f.TotalValue = (f.UnitsA * priceA.V) + (f.UnitsB * priceB.V)
 	f.TotalValueHODL = (f.InitialUnitsA * priceA.V) + (f.InitialUnitsB * priceB.V)
+}
+
+func (f *LPFarm) PrintChange(date string) {
+	if i, found := f.ChangeHistory[date]; found {
+		il := (1 - (i.TotalValue / i.TotalValueHODL)) * 100.0
+
+		pr := message.NewPrinter(language.English)
+
+		pr.Printf("[%s] position  : %10.02f  (IL: %6.02f , hodl: %10.02f , APR: %6.02f %% , a: %10.02f , b: %10.02f , units: %.2f / %.2f)\n",
+			i.Date, i.TotalValue, il, i.TotalValueHODL, i.APR, i.PriceA, i.PriceB, i.UnitsA, i.UnitsB,
+		)
+	}
+}
+
+func (f *LPFarm) AddLP(date string, amount float64) error {
+	pa, pb, err := f.GetPrices(date)
+	if err != nil {
+		return err
+	}
+
+	// Split yield 50/50 between our asset pair.
+	addUnitsA := amount / 2 / pa.V
+	addUnitsB := amount / 2 / pb.V
+
+	f.UnitsA += addUnitsA
+	f.UnitsB += addUnitsB
+
+	f.RebalanceLP(pa, pb)
+
+	f.LogChange(date, pa, pb)
 
 	return nil
 }
 
-func (f *LPFarm) Print() {
-	pr := message.NewPrinter(language.English)
-
-	latest := len(f.TotalValueHistory) - 1
-	pa := f.PriceAHistory[latest]
-	pb := f.PriceBHistory[latest]
-	farm := f.TotalValueHistory[latest]
-	hodl := f.TotalValueHODLHistory[latest]
-	il := (1 - (farm / hodl)) * 100.0
-
-	pr.Printf("[%s] position  : %10.02f  (IL: %6.02f , hodl: %10.02f , APR: %6.02f %% , a: %10.02f , b: %10.02f , units: %.2f / %.2f)\n",
-		f.LastHarvestDate, farm, il, hodl, f.APR, pa, pb, f.UnitsA, f.UnitsB,
-	)
-}
-
-func (f *LPFarm) Harvest(date string) error {
+func (f *LPFarm) Harvest(date string) (yield float64, err error) {
 	if f.StartDate >= date {
-		return errors.Errorf("harvest date %s is before start date %s", date, f.StartDate)
+		err = errors.Errorf("harvest date %s is before start date %s", date, f.StartDate)
+		return
 	}
 
 	if f.LastHarvestDate >= date {
-		return errors.Errorf("harvest date %s is before last harvest date %s", date, f.LastHarvestDate)
+		err = errors.Errorf("harvest date %s is before last harvest date %s", date, f.LastHarvestDate)
+		return
 	}
 
 	days := timeseries.DiffDays(date, f.LastHarvestDate)
@@ -148,46 +194,25 @@ func (f *LPFarm) Harvest(date string) error {
 			}
 		}
 
-		pa, pb, err := f.GetPrices(date)
-		if err != nil {
-			return err
+		pa, pb, err2 := f.GetPrices(date)
+		if err2 != nil {
+			err = err2
+			return
 		}
 
 		// Rebalance to get the latest fiat value of the farm.
-		err = f.RebalanceLP(pa, pb)
-		if err != nil {
-			return err
-		}
+		f.RebalanceLP(pa, pb)
 
 		dailyPercentageRate := (f.APR / 100 / 365) * float64(days)
-		yield := f.TotalValue * dailyPercentageRate
-		// Split yield 50/50 between our asset pair.
-		addUnitsA := yield / 2 / pa.V
-		addUnitsB := yield / 2 / pb.V
-
-		f.UnitsA += addUnitsA
-		f.UnitsB += addUnitsB
+		yield = f.TotalValue * dailyPercentageRate
 
 		f.LastHarvestDate = date
 
-		err = f.RebalanceLP(pa, pb)
-		if err != nil {
-			return err
-		}
+		f.RebalanceLP(pa, pb)
 
-		// Update change history.
-		f.ChangeHistory = append(f.ChangeHistory, date)
-		f.PriceAHistory = append(f.PriceAHistory, pa.V)
-		f.PriceBHistory = append(f.PriceBHistory, pb.V)
-		f.TotalValueHistory = append(f.TotalValueHistory, f.TotalValue)
-		f.TotalValueHODLHistory = append(f.TotalValueHODLHistory, f.TotalValueHODL)
-		f.TotalValueHODLOnlyAHistory = append(f.TotalValueHODLOnlyAHistory, f.InitialUnitsA*2*pa.V)
-		f.TotalValueHODLOnlyBHistory = append(f.TotalValueHODLOnlyBHistory, f.InitialUnitsB*2*pb.V)
-		f.APRHistory = append(f.APRHistory, f.APR)
-
-		f.Print()
-		// pr.Println("")
+		f.LogChange(date, pa, pb)
+		f.PrintChange(date)
 	}
 
-	return nil
+	return
 }

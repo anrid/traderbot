@@ -17,24 +17,28 @@ import (
 )
 
 func RenderYieldFarmingPerformanceChart(path string, farm *LPFarm) error {
-	toLineData := func(vs []float64) (items []opts.LineData) {
-		for _, v := range vs {
-			items = append(items, opts.LineData{Value: int64(v)})
+	toLineData := func(history []*LPFarmHistoryItem, extractor func(*LPFarmHistoryItem) float64) (items []opts.LineData) {
+		for _, i := range history {
+			items = append(items, opts.LineData{Value: int64(extractor(i))})
 		}
 		return
 	}
 
 	pr := message.NewPrinter(language.English)
 
+	history := farm.GetChangeHistoryAsc()
+	first := history[0]
+	last := history[len(history)-1]
+
 	title := pr.Sprintf("Yield Farming %s/%s LP  --  [%s - %s]",
 		strings.ToUpper(farm.A.Symbol),
 		strings.ToUpper(farm.B.Symbol),
-		farm.ChangeHistory[0],
-		farm.ChangeHistory[len(farm.ChangeHistory)-1],
+		first.Date,
+		last.Date,
 	)
 	subtitle := pr.Sprintf("Starting APR: %.f%% , Final APR: %.f%% , Initial Investment: %.f %s",
-		farm.APRHistory[0],
-		farm.APRHistory[len(farm.APRHistory)-1],
+		first.APR,
+		last.APR,
 		farm.InitialInvestment,
 		strings.ToUpper(string(farm.Currency)),
 	)
@@ -42,8 +46,8 @@ func RenderYieldFarmingPerformanceChart(path string, farm *LPFarm) error {
 	filename := strings.ToLower(pr.Sprintf("yield-farming-%s-%s-%s-%s.html",
 		farm.A.Symbol,
 		farm.B.Symbol,
-		farm.ChangeHistory[0],
-		farm.ChangeHistory[len(farm.ChangeHistory)-1],
+		first.Date,
+		last.Date,
 	))
 
 	fontFamily := "Source Code Pro"
@@ -106,15 +110,10 @@ func RenderYieldFarmingPerformanceChart(path string, farm *LPFarm) error {
 		}),
 	)
 
-	latest := len(farm.TotalValueHistory) - 1
-	farmV := farm.TotalValueHistory[latest]
-	farmPL := ((farmV / farm.InitialInvestment) - 1) * 100
-	hodlV := farm.TotalValueHODLHistory[latest]
-	hodlPL := ((hodlV / farm.InitialInvestment) - 1) * 100
-	onlyAV := farm.TotalValueHODLOnlyAHistory[latest]
-	onlyAPL := ((onlyAV / farm.InitialInvestment) - 1) * 100
-	onlyBV := farm.TotalValueHODLOnlyBHistory[latest]
-	onlyBPL := ((onlyBV / farm.InitialInvestment) - 1) * 100
+	farmPL := ((last.TotalValue / farm.InitialInvestment) - 1) * 100
+	hodlPL := ((last.TotalValueHODL / farm.InitialInvestment) - 1) * 100
+	onlyAPL := ((last.TotalValueHODLOnlyA / farm.InitialInvestment) - 1) * 100
+	onlyBPL := ((last.TotalValueHODLOnlyB / farm.InitialInvestment) - 1) * 100
 
 	series1 := "Farm"
 	series2 := "HODL"
@@ -122,10 +121,10 @@ func RenderYieldFarmingPerformanceChart(path string, farm *LPFarm) error {
 	series4 := pr.Sprintf("Only %s", strings.ToUpper(farm.B.Symbol))
 
 	line.SetXAxis(farm.ChangeHistory).
-		AddSeries(pr.Sprintf("%s: %.f (%.f%%)", series1, farmV, farmPL), toLineData(farm.TotalValueHistory)).
-		AddSeries(pr.Sprintf("%s: %.f (%.f%%)", series2, hodlV, hodlPL), toLineData(farm.TotalValueHODLHistory)).
-		AddSeries(pr.Sprintf("%s: %.f (%.f%%)", series3, onlyAV, onlyAPL), toLineData(farm.TotalValueHODLOnlyAHistory)).
-		AddSeries(pr.Sprintf("%s: %.f (%.f%%)", series4, onlyBV, onlyBPL), toLineData(farm.TotalValueHODLOnlyBHistory))
+		AddSeries(pr.Sprintf("%s: %.f (%.f%%)", series1, last.TotalValue, farmPL), toLineData(history, func(i *LPFarmHistoryItem) float64 { return i.TotalValue })).
+		AddSeries(pr.Sprintf("%s: %.f (%.f%%)", series2, last.TotalValueHODL, hodlPL), toLineData(history, func(i *LPFarmHistoryItem) float64 { return i.TotalValueHODL })).
+		AddSeries(pr.Sprintf("%s: %.f (%.f%%)", series3, last.TotalValueHODLOnlyA, onlyAPL), toLineData(history, func(i *LPFarmHistoryItem) float64 { return i.TotalValueHODLOnlyA })).
+		AddSeries(pr.Sprintf("%s: %.f (%.f%%)", series4, last.TotalValueHODLOnlyB, onlyBPL), toLineData(history, func(i *LPFarmHistoryItem) float64 { return i.TotalValueHODLOnlyB }))
 
 	// line.SetSeriesOptions(
 	// 	charts.WithLineChartOpts(

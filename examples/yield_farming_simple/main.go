@@ -17,25 +17,24 @@ import (
 )
 
 func main() {
+	startDate := "2021-07-01"     // Date of initial investment. We start farming from this date.
+	harvestDays := 365            // Number of days to harvest and compound yields.
+	initialInvestment := 10_000.0 // Initial investment in USD.
+	apr := 99.0                   // Farm APR.
+
 	cg := coingecko.New(coingecko.USD)
 
-	var periodInDays uint = 365
-
-	a, err := cg.MarketChartWithCache("terra-luna", periodInDays, jsoncache.InvalidateDaily)
+	a, err := cg.MarketChartWithCache("terra-luna", uint(harvestDays), jsoncache.InvalidateDaily)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	b, err := cg.MarketChartWithCache("osmosis", periodInDays, jsoncache.InvalidateDaily)
+	b, err := cg.MarketChartWithCache("osmosis", uint(harvestDays), jsoncache.InvalidateDaily)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	startDate := "2021-07-01"
-	harvestDays := 365
-	initialInvestment := 10_000.0
-
-	farm, err := trade.NewLPFarm(a, b, coingecko.USD, initialInvestment, startDate, 99.0 /* APR */)
+	farm, err := trade.NewLPFarm(a, b, coingecko.USD, initialInvestment, startDate, apr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -43,11 +42,19 @@ func main() {
 	farm.SetAPRChangeRateAtHarvest(0.15) // Lower APR by 0.15 percentage points every day.
 
 	from := timeseries.ToTime(startDate)
-	for i := 1; i <= harvestDays; /* number of days to harvest and compound yields */ i++ {
-		cur := from.Add(time.Duration(i) * 24 * time.Hour)
-		if cur.After(time.Now()) {
+	for i := 1; i <= harvestDays; i++ {
+		current := from.Add(time.Duration(i) * 24 * time.Hour)
+		if current.After(time.Now()) {
 			break
 		}
-		farm.Harvest(timeseries.ToDate(cur))
+
+		date := timeseries.ToDate(current)
+
+		yield, err := farm.Harvest(date)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		farm.AddLP(date, yield) // Compound yield!
 	}
 }
