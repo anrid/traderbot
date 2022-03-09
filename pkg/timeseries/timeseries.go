@@ -14,16 +14,17 @@ const (
 
 type Series []ValueAt
 
-func (ts Series) At(t time.Time) (price ValueAt, found bool) {
+func (ts Series) At(t time.Time) (v ValueAt, found bool) {
 	return ts.AtDate(t.Format(dateFormat))
 }
 
-func (ts Series) AtDate(date string) (price ValueAt, found bool) {
-	for _, p := range ts {
-		if p.Date() == date {
-			price = p
+func (ts Series) AtDate(date string) (v ValueAt, found bool) {
+	for _, t := range ts {
+		if t.Date() == date {
+			v = t
 			found = true
-			break
+			// Don't break here since there may be a more recent
+			// value in the timeseries.
 		}
 	}
 	return
@@ -45,8 +46,8 @@ func (v ValueAt) Date() string {
 func (ts Series) Print() {
 	pr := message.NewPrinter(language.English)
 
-	for _, v := range ts {
-		pr.Printf("[%s]  --  %.04f\n", v.Date(), v.V)
+	for _, t := range ts {
+		pr.Printf("[%s]  --  %.04f\n", t.Date(), t.V)
 	}
 }
 
