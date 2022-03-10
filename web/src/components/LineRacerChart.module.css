@@ -1,0 +1,18 @@
+.Title {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.ChartContainer {
+    background-color: #100c2a;
+    box-sizing: border-box;
+    padding: 50px;
+
+    height: 750px;
+    width: 1000px;
+}
+
+.Chart {
+    height: 100%;
+    width: 100%;
+}
