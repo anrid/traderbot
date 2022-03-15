@@ -55,6 +55,6 @@ func main() {
 			log.Fatal(err)
 		}
 
-		farm.AddLP(date, yield) // Compound yield!
+		farm.AddLP(date, yield, false) // Compound yield!
 	}
 }

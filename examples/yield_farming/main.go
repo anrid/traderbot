@@ -74,7 +74,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		farm.AddLP(d, yield) // Compound yield!
+		farm.AddLP(d, yield, false) // Compound yield!
 	}
 
 	err = trade.RenderYieldFarmingPerformanceChart(*path, farm)

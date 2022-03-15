@@ -6,18 +6,18 @@ import (
 )
 
 func main() {
-	fc := trade.NewForecast(coingecko.USD, 1_000.0, 360)
+	fc := trade.NewForecast(coingecko.USD, 10_000.0, 100)
 
 	luna := fc.CreateMarket("Terra", "LUNA", 100.0, []trade.PriceChange{
-		{IncPct: 80.0, IncDays: 30},
-		{DecPct: 40.0, DecDays: 60},
-		{IncPct: 80.0, IncDays: 30},
-		{DecPct: 40.0, DecDays: 60},
-		{IncPct: 80.0, IncDays: 30},
-		{DecPct: 40.0, DecDays: 60},
-		{IncPct: 80.0, IncDays: 30},
-		{DecPct: 40.0, DecDays: 60},
+		{IncPct: 150.0, IncDays: 60},
+		{DecPct: 50.0, DecDays: 90},
 	})
 
-	coingecko.Dump(luna.Prices)
+	// luna.Prices.PrintSample(30)
+
+	ust := fc.CreateMarket("Terra USD", "UST", 1.0, nil)
+
+	// ust.Prices.PrintSample(30)
+
+	fc.AddLPFarm(luna, ust, 100.0, 40.0, 1000.0 /* Invest an additional $1,000 USD into the farm at the beginning of every month */)
 }

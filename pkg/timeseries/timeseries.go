@@ -51,6 +51,16 @@ func (ts Series) Print() {
 	}
 }
 
+func (ts Series) PrintSample(size int) {
+	pr := message.NewPrinter(language.English)
+
+	for i, t := range ts {
+		if i%size == 0 || i == len(ts)-1 {
+			pr.Printf("[%s]  --  %.04f\n", t.Date(), t.V)
+		}
+	}
+}
+
 func FromTuples(tuples [][]interface{}) Series {
 	var ts Series
 	for _, tuple := range tuples {

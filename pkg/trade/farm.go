@@ -12,22 +12,24 @@ import (
 )
 
 type LPFarm struct {
-	A                      *coingecko.Market
-	B                      *coingecko.Market
-	Currency               coingecko.Fiat
-	InitialInvestment      float64
-	StartDate              string
-	APR                    float64
-	APRChangeRateAtHarvest float64
-	InitialAPR             float64
-	LastHarvestDate        string
-	UnitsA                 float64
-	UnitsB                 float64
-	InitialUnitsA          float64
-	InitialUnitsB          float64
-	TotalValue             float64                       // Total value of farm in given fiat currency.
-	TotalValueHODL         float64                       // Total value if we simply HODL:d both assets instead, in given fiat currency.
-	ChangeHistory          map[string]*LPFarmHistoryItem // All changes, e.g. when a harvest was performed or more LP was added.
+	A                          *coingecko.Market
+	B                          *coingecko.Market
+	Currency                   coingecko.Fiat
+	InitialInvestment          float64
+	StartDate                  string
+	APR                        float64
+	APRChangeRateAtHarvest     float64
+	InitialAPR                 float64
+	LastHarvestDate            string
+	UnitsA                     float64
+	UnitsB                     float64
+	InitialUnitsA              float64
+	InitialUnitsB              float64
+	AdditionalInvestmentUnitsA float64
+	AdditionalInvestmentUnitsB float64
+	TotalValue                 float64                       // Total value of farm in given fiat currency.
+	TotalValueHODL             float64                       // Total value if we simply HODL:d both assets instead, in given fiat currency.
+	ChangeHistory              map[string]*LPFarmHistoryItem // All changes, e.g. when a harvest was performed or more LP was added.
 }
 
 type LPFarmHistoryItem struct {
@@ -134,7 +136,8 @@ func (f *LPFarm) RebalanceLP(priceA, priceB timeseries.ValueAt) {
 	f.UnitsB = math.Sqrt(k * rt)
 
 	f.TotalValue = (f.UnitsA * priceA.V) + (f.UnitsB * priceB.V)
-	f.TotalValueHODL = (f.InitialUnitsA * priceA.V) + (f.InitialUnitsB * priceB.V)
+	f.TotalValueHODL = (f.InitialUnitsA * priceA.V) + (f.InitialUnitsB * priceB.V) +
+		(f.AdditionalInvestmentUnitsA * priceA.V) + (f.AdditionalInvestmentUnitsB * priceB.V)
 }
 
 func (f *LPFarm) PrintChange(date string) {
@@ -149,7 +152,7 @@ func (f *LPFarm) PrintChange(date string) {
 	}
 }
 
-func (f *LPFarm) AddLP(date string, amount float64) error {
+func (f *LPFarm) AddLP(date string, amount float64, isAdditionalInvestment bool) error {
 	pa, pb, err := f.GetPrices(date)
 	if err != nil {
 		return err
@@ -161,6 +164,10 @@ func (f *LPFarm) AddLP(date string, amount float64) error {
 
 	f.UnitsA += addUnitsA
 	f.UnitsB += addUnitsB
+	if isAdditionalInvestment {
+		f.AdditionalInvestmentUnitsA += addUnitsA
+		f.AdditionalInvestmentUnitsB += addUnitsB
+	}
 
 	f.RebalanceLP(pa, pb)
 

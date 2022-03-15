@@ -85,7 +85,7 @@ func TestLPFarm(t *testing.T) {
 
 		fmt.Printf("a = %f  b = %f  total = %f  yield = %f\n", f.UnitsA, f.UnitsB, f.TotalValue, yield)
 
-		f.AddLP(day2Date, yield)
+		f.AddLP(day2Date, yield, false)
 
 		r.Equal(f.InitialUnitsA+(f.InitialUnitsA*0.01), f.UnitsA)
 		r.Equal(f.InitialUnitsB+(f.InitialUnitsB*0.01), f.UnitsB)
