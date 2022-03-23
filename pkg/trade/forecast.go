@@ -1,7 +1,9 @@
 package trade
 
 import (
+	"encoding/json"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/anrid/traderbot/pkg/coingecko"
@@ -25,6 +27,49 @@ func NewForecast(currency coingecko.Fiat, initialInvestment float64, days int) *
 		StartDate:         timeseries.ToDate(time.Now()),
 		Days:              days,
 	}
+}
+
+func (fc *Forecast) ToJSON() (string, error) {
+	out := [][]interface{}{
+		{"Name", "Date", "Price A", "Price B", "Units A", "Units B", "Value", "HODL", "Only A", "Only B", "APR"},
+	}
+
+	dates := make(map[string]bool)
+
+	for _, f := range fc.Farms {
+		for d := range f.ChangeHistory {
+			dates[d] = true
+		}
+	}
+
+	var uniqueDates []string
+	for d := range dates {
+		uniqueDates = append(uniqueDates, d)
+	}
+
+	sort.SliceStable(uniqueDates, func(i, j int) bool {
+		return uniqueDates[i] < uniqueDates[j]
+	})
+
+	for _, d := range uniqueDates {
+		for j := 0; j < len(fc.Farms); j++ {
+			farm := fc.Farms[j]
+			if h, found := farm.ChangeHistory[d]; found {
+				out = append(out, []interface{}{
+					farm.Name, h.Date, h.PriceA, h.PriceB, h.UnitsA, h.UnitsB,
+					h.TotalValue, h.TotalValueHODL, h.TotalValueHODLOnlyA, h.TotalValueHODLOnlyB,
+					h.APR,
+				})
+			}
+		}
+	}
+
+	b, err := json.MarshalIndent(out, "", "  ")
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
 }
 
 func (fc *Forecast) AddLPFarm(a, b *coingecko.Market, apr, finalAPR, additionalInvestmentMonthly float64) error {

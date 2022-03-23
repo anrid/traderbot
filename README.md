@@ -73,7 +73,8 @@ func main() {
 	cg := coingecko.New(coingecko.USD)
 
 	id := "terra-luna"          // CoinGecko ID.
-	var periodInDays uint = 365 // Start our trading strategy 365 ago counting from today.
+	var periodInDays uint = 365 // We start our trading strategy simulation 365 days ago
+	                            // counting from today.
 
 	m, err := cg.MarketChartWithCache(id, periodInDays, jsoncache.InvalidateDaily)
 	if err != nil {

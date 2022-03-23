@@ -1,8 +1,10 @@
 package trade
 
 import (
+	"fmt"
 	"math"
 	"sort"
+	"strings"
 
 	"github.com/anrid/traderbot/pkg/coingecko"
 	"github.com/anrid/traderbot/pkg/timeseries"
@@ -12,6 +14,7 @@ import (
 )
 
 type LPFarm struct {
+	Name                       string
 	A                          *coingecko.Market
 	B                          *coingecko.Market
 	Currency                   coingecko.Fiat
@@ -47,6 +50,7 @@ type LPFarmHistoryItem struct {
 
 func NewLPFarm(a, b *coingecko.Market, c coingecko.Fiat, initialInvestment float64, startDate string, apr float64) (*LPFarm, error) {
 	f := &LPFarm{
+		Name:              fmt.Sprintf("%s/%s LP", strings.ToUpper(a.Symbol), strings.ToUpper(b.Symbol)),
 		A:                 a,
 		B:                 b,
 		Currency:          c,
