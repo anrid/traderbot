@@ -1,13 +1,13 @@
 import logo from './logo.svg'
 import styles from './App.module.css'
 
-import Chart from './components/LineRacerChart'
+import Chart from './components/ForecastChart'
 
 function App() {
     return (
         <div class={styles.App}>
             <header class={styles.header}></header>
-            <Chart title="Income dude!" />
+            <Chart title="It's all in the wrist!" />
         </div>
     )
 }

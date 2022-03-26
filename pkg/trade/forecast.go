@@ -3,6 +3,7 @@ package trade
 import (
 	"encoding/json"
 	"log"
+	"math"
 	"sort"
 	"time"
 
@@ -153,7 +154,8 @@ func (fc *Forecast) CreateMarket(name, symbol string, startingPrice float64, cha
 	for day := 0; day <= fc.Days; day++ {
 		date := start.Add(time.Duration(day) * 24 * time.Hour)
 
-		if len(changes) > 0 {
+		if len(changes) > 0 && day > 0 {
+			// Start applying price changes on the following day.
 			if priceChangeDaysRemaining == 0 {
 				c := changes[priceChangeIndex]
 
@@ -162,11 +164,17 @@ func (fc *Forecast) CreateMarket(name, symbol string, startingPrice float64, cha
 					targetPrice := price * (1 + (c.IncPct / 100))
 					priceChangeDaysRemaining = c.IncDays
 					priceChangeDelta = (targetPrice - price) / float64(c.IncDays)
+
+					// Round to 2 decimals
+					priceChangeDelta = math.Floor(priceChangeDelta*100) / 100
 				} else if c.DecPct > 0 && c.DecDays > 0 {
 					// Calculate price decrement.
 					targetPrice := price * (1 - (c.DecPct / 100))
 					priceChangeDaysRemaining = c.DecDays
 					priceChangeDelta = (targetPrice - price) / float64(c.DecDays)
+
+					// Round to 2 decimals
+					priceChangeDelta = math.Floor(priceChangeDelta*100) / 100
 				}
 
 				priceChangeIndex++
@@ -180,6 +188,9 @@ func (fc *Forecast) CreateMarket(name, symbol string, startingPrice float64, cha
 				// Apply price change.
 				priceChangeDaysRemaining--
 				price += priceChangeDelta
+
+				// Round to 2 decimals
+				price = math.Floor(price*100) / 100
 			}
 		}
 

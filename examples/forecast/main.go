@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	days := 10
+	days := 120
 
 	fc := trade.NewForecast(coingecko.USD, 10_000.0, days)
 
