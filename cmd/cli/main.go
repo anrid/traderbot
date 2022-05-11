@@ -47,7 +47,7 @@ func main() {
 			ema9d := trade.NewEMAIndicator(9, m.Prices)
 			ema21d := trade.NewEMAIndicator(21, m.Prices)
 
-			s, err := trade.NewEMACrossOverStrategy(ema9d, ema21d, m)
+			s, err := trade.NewEMACrossOverStrategy(ema9d, ema21d, m, m)
 			if err != nil {
 				log.Fatal(err)
 			}
