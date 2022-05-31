@@ -23,6 +23,8 @@ const (
 	InvalidateHourly InvalidateCachePeriod = iota + 1
 	InvalidateDaily
 	InvalidateWeekly
+	InvalidateMonthly
+	InvalidateNow
 )
 
 func Get(key string, into interface{}, i InvalidateCachePeriod) error {
@@ -84,6 +86,8 @@ func createKey(input string, i InvalidateCachePeriod) string {
 
 	var prefix string
 	switch i {
+	case InvalidateNow:
+		prefix = fmt.Sprintf("%d", now.UnixMicro())
 	case InvalidateHourly:
 		prefix = now.Format("2006-01-02-15")
 	case InvalidateDaily:
@@ -91,6 +95,8 @@ func createKey(input string, i InvalidateCachePeriod) string {
 	case InvalidateWeekly:
 		_, week := now.ISOWeek()
 		prefix = time.Now().Format("2006-01-") + fmt.Sprintf("week%02d", week)
+	case InvalidateMonthly:
+		prefix = time.Now().Format("2006-01")
 	}
 
 	return prefix + "-" + wordCharsOnly.ReplaceAllString(strings.ToLower(input), "-")
